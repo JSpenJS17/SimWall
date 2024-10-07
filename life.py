@@ -1,6 +1,7 @@
 import numpy as np
 from screeninfo import get_monitors
-from PIL import Image
+import time
+import os
 
 monitor = None
 for m in get_monitors():
@@ -13,12 +14,15 @@ if monitor is None:
 
 # Set grid size and cell size
 # Have it be a single array concatenated by rows
-GRID_SIZE = (monitor.height//10, monitor.width // 10)
+# GRID_SIZE = (monitor.height//10, monitor.width // 10)
+# get terminal size for grid size
+rows, columns = os.popen('stty size', 'r').read().split()
+GRID_SIZE = (int(rows), int(columns)//2)
 CELL_SIZE = 10
 
 # Initialize the grid (randomly filled)
-def initialize_grid():
-    return np.random.choice([0, 1], size=GRID_SIZE, p=[0.8, 0.2])
+def initialize_grid(p = 0.2):
+    return np.random.choice([0, 1], size=GRID_SIZE, p=[1-p, p])
 
 # Compute the next generation of the grid
 def next_generation(grid):
@@ -34,34 +38,32 @@ def next_generation(grid):
                 new_grid[x, y] = grid[x, y]
     return new_grid
 
+def clear_screen():
+    print("\033[H\033[J")
+
 # Main loop
 def run_game_of_life():
-    grid = initialize_grid()
+    grid = initialize_grid(.2)
     running = True
     print(grid.shape)
 
-    count = 0
-    while count < 60:
+    while running:
         grid = next_generation(grid)  # Get the next generation
 
-        # color mapping
-        image_data = grid * 255 
-        image_data = image_data.astype(np.uint8)
+        # Display the grid
+        clear_screen()
 
-        # make sure that the resolution is correct
-        image = Image.fromarray(image_data, mode='L')
+        out_str = ""
+        for x in range(GRID_SIZE[0]):
+            for y in range(GRID_SIZE[1]):
+                if grid[x, y] == 1:
+                    # print white for alive cells
+                    out_str += "██"
+                else:
+                    out_str += "  "
 
-        new_size = (grid.shape[1] * CELL_SIZE, grid.shape[0] * CELL_SIZE)
-
-        # Resize the image to the desired size
-        image = image.resize(new_size, Image.NEAREST)
-
-        # make sure they are alphabetical numerically
-        image.save(f'artifacts/{count:02d}.png')
-
-        print(f"Generation {count}")
-        count += 1
-
+        print(out_str)
+        time.sleep(.1)
 
 if __name__ == "__main__":
     run_game_of_life()
