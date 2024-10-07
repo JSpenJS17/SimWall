@@ -1,24 +1,22 @@
 import numpy as np
-from screeninfo import get_monitors
 import time
 import os
 
-monitor = None
-for m in get_monitors():
-    if m.is_primary:
-        monitor = m
-        break
-
-if monitor is None:
-    raise Exception("No primary monitor found")
-
-# Set grid size and cell size
-# Have it be a single array concatenated by rows
-# GRID_SIZE = (monitor.height//10, monitor.width // 10)
+# Set default grid size
+# GRID_SIZE = (monitor.height//10, monitor.width // 10) # old monitor display size code, will be used later
 # get terminal size for grid size
 rows, columns = os.popen('stty size', 'r').read().split()
 GRID_SIZE = (int(rows), int(columns)//2)
+# Set default cell size
 CELL_SIZE = 10
+
+def set_grid_size(size):
+    global GRID_SIZE
+    GRID_SIZE = size
+
+def set_cell_size(size):
+    global CELL_SIZE
+    CELL_SIZE = size
 
 # Initialize the grid (randomly filled)
 def initialize_grid(p = 0.2):
@@ -61,6 +59,7 @@ def run_game_of_life():
                     out_str += "██"
                 else:
                     out_str += "  "
+            out_str += "\n"
 
         print(out_str)
         time.sleep(.1)
