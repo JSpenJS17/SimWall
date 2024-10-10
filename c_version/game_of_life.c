@@ -36,7 +36,7 @@ Description: This program reads a GoL board state and generates some number of f
 //     int board_height = screen_ratio_height * resolution_scaling_factor;
 
 //     bool* start_pattern = read_start_pattern(filename, board_width, board_height);
-//     randomize_pattern(start_pattern, board_width, board_height); //comment this out to use the start_pattern.txt
+//     // randomize_pattern(start_pattern, board_width, board_height, 20); //comment this out to use the start_pattern.txt
 //     if (start_pattern == NULL) {
 //         return EXIT_FAILURE;
 //     }
@@ -47,7 +47,7 @@ Description: This program reads a GoL board state and generates some number of f
 //         print_pattern(current_pattern, board_width, board_height);
 //         usleep(100000); // .1 second
 //         bool* next_pattern = generate_next_pattern(current_pattern, board_width, board_height);
-//         // freeing of old pattern handled in generate_next_pattern
+//         free(current_pattern);
 //         current_pattern = next_pattern;
 //     }
 
@@ -136,7 +136,6 @@ bool* generate_next_pattern(bool* pattern, int width, int height) {
         }
     }
 
-    free (pattern);
     return next_pattern;
 }
 
@@ -174,9 +173,9 @@ void print_pattern(bool* pattern, int width, int height) {
     printf("\n");
 }
 
-void randomize_pattern(bool* pattern, int width, int height) {
+void randomize_pattern(bool* pattern, int width, int height, int percent_alive) {
     srand(time(NULL));
     for (int i = 0; i < width * height; i++) {
-        pattern[i] = rand() % 2;
+        pattern[i] = (rand() % 100) < percent_alive;
     }
 }

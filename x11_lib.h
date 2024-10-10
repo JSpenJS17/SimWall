@@ -3,19 +3,19 @@
 
 #define CELL_SIZE 25
 
-/* Generic RGB struct */
-struct RGB {
-    unsigned short r;
-    unsigned short g;
-    unsigned short b;
-};
-typedef struct RGB RGB;
-
 /* typedefs for my convenience */
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned long ulong;
+
+/* Generic RGB struct */
+struct RGB {
+    ushort r;
+    ushort g;
+    ushort b;
+};
+typedef struct RGB RGB;
 
 /* Function prototypes */
 void x11_cleanup();

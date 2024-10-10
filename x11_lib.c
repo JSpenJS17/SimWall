@@ -207,9 +207,8 @@ int screen_height() {
 int window_setup() {
     /* Main helper function to run here. Will do all the window setup */
     /* ALL OF THIS TO SET UP THE WINDOW! */
-    
     // screen #
-    int screen;
+    int screen = 0;
 
     // start up x11 libs, standard stuff
     init_x11();

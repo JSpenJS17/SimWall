@@ -23,11 +23,19 @@ struct Args {
     RGB bg_color;
     RGB fg_color;
     uchar flags;
+    float framerate;
 };
 typedef struct Args Args;
 
 void usage() {
-    fprintf(stderr, "Usage: simwall [-h] [-bg r g b] [-fg r g b] [-d] \n");
+    fprintf(stderr, "Usage: simwall [options]\n");
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "  -h, --help: Show this help message\n");
+    fprintf(stderr, "  -D, -d, --daemonize: Daemonize the process\n");
+    fprintf(stderr, "  -bg 000000: Set the background (dead cell) color\n");
+    fprintf(stderr, "  -fg FFFFFF: Set the foreground (alive cell) color\n");
+    fprintf(stderr, "  -fps 10.0: Set the framerate (can be decimal)\n");
+    fprintf(stderr, "Example: simwall -bg FF00FF -fg 00FF00 -fps 10.0\n");
 }
 
 Args* parse_args(int argc, char **argv) {
@@ -37,6 +45,7 @@ Args* parse_args(int argc, char **argv) {
     // define defaults
     Args* args = malloc(sizeof(Args));
     memset(args, 0, sizeof(Args));
+    args->framerate = 10.0;
     args->fg_color.r = 255;
     args->fg_color.g = 255;
     args->fg_color.b = 255;
@@ -57,28 +66,49 @@ Args* parse_args(int argc, char **argv) {
         }
         // background color
         else if (strcmp(argv[i], "-bg") == 0) {
-            if (i + 3 >= argc) {
+            if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -bg\n");
                 usage();
                 exit(1);
             }
-            args->bg_color.r = atoi(argv[i+1]);
-            args->bg_color.g = atoi(argv[i+2]);
-            args->bg_color.b = atoi(argv[i+3]);
-            i += 3;
+            // convert the hex to RGB
+            char* bg_color_str = argv[i+1];
+            if (strlen(bg_color_str) != 6) {
+                fprintf(stderr, "Invalid color: %s\n", bg_color_str);
+                usage();
+                exit(1);
+            }
+            // Use sscanf to convert hex to RGB
+            sscanf(bg_color_str, "%2hx%2hx%2hx", &args->bg_color.r, &args->bg_color.g, &args->bg_color.b);
+            i++; // increment i to simulate parsing the hex string
         }
         // foreground color
         else if (strcmp(argv[i], "-fg") == 0) {
-            if (i + 3 >= argc) {
+            if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -fg\n");
                 usage();
                 exit(1);
             }
-            args->fg_color.r = atoi(argv[i+1]);
-            args->fg_color.g = atoi(argv[i+2]);
-            args->fg_color.b = atoi(argv[i+3]);
-            i += 3;
+            // convert the hex to RGB
+            char* fg_color_str = argv[i+1];
+            if (strlen(fg_color_str) != 6) {
+                fprintf(stderr, "Invalid color: %s\n", fg_color_str);
+                usage();
+                exit(1);
+            }
+            // Use sscanf to convert hex to RGB
+            sscanf(fg_color_str, "%2hx%2hx%2hx", &args->fg_color.r, &args->fg_color.g, &args->fg_color.b);
+            i++; // increment i to simulate parsing the hex string
         } 
+        else if (strcmp(argv[i], "-fps") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "Not enough arguments for -fps\n");
+                usage();
+                exit(1);
+            }
+            args->framerate = atof(argv[i+1]);
+            i += 1; 
+        }
         else {
             fprintf(stderr, "Unknown argument: %s\n", argv[i]);
             usage();
@@ -89,6 +119,10 @@ Args* parse_args(int argc, char **argv) {
     return args;
 }
 
+/* Could optimize this to only update when the user is looking at it,
+but I'm just not sure how to detect that yet. Looks like in-built event
+handling in X11 but I've been trying for an hour to make it work and
+I cannot. */
 int main(int argc, char **argv) {
     // parse arguments
     Args* args = parse_args(argc, argv);
@@ -104,64 +138,90 @@ int main(int argc, char **argv) {
     // Initialize the window -- might need to pass flags eventually
     window_setup();
 
-    // Set up event handler
-    // XEvent event; old event handling code
-
     // LIFE TIME!!!    
-    int pix_height = screen_height();
-    int pix_width = screen_width();
+    int disp_height = screen_height();
+    int disp_width = screen_width();
 
-    int board_height = pix_height / CELL_SIZE;
-    int board_width = pix_width / CELL_SIZE;
+    int board_height = disp_height / CELL_SIZE;
+    int board_width = disp_width / CELL_SIZE;
 
     // Set up the game of life board with random start
     bool* current_pattern = malloc(board_width * board_height * sizeof(bool));
-    randomize_pattern(current_pattern, board_width, board_height);
+    randomize_pattern(current_pattern, board_width, board_height, 20);
 
-    /* Could optimize this to only update when the user is looking at it,
-    but I'm just not sure how to detect that yet. Looks like in-built event
-    handling in X11 but I've been trying for an hour to make it work and
-    I cannot. */
-    
-    // Fill the background with bg just in case we don't fill up the whole screen
+    // track how many dead there are
+    float dead = 0;
+    const float total = board_width * board_height;
+
+    // int representations to save some code in the loop
+    int bg_color_int = args->bg_color.r << 16 | args->bg_color.g << 8 | args->bg_color.b;
+    int fg_color_int = args->fg_color.r << 16 | args->fg_color.g << 8 | args->fg_color.b;
+
+    // set the color to the background color
+    int cur_color = bg_color_int;
     color_rgb(args->bg_color);
-    fill_background();
 
+    // Main loop
     while (1) {
+        // get start time
+        time_t start_time = time(NULL);
+
+        /* DRAWING PORTION */
         // loop through our board and draw it
         for (int i = 0; i < board_width * board_height; i++) {
-            // check current cell
-            if (current_pattern[i] == 1) {
-                // if alive, draw fg
+            // check current cell's alive state
+            if (current_pattern[i] == 1 && cur_color != fg_color_int) {
+                // if alive and we're not already on the fg color, switch to it
+                cur_color = fg_color_int;
                 color_rgb(args->fg_color);
-                fill_cell(i % board_width, i / board_width);
             }
-            else 
-            {
-                // if dead, draw bg
-                color_rgb(args->bg_color);
-                fill_cell(i % board_width, i / board_width);
+            else if (current_pattern[i] == 0) {
+                // if dead, increment dead count
+                dead++;
+                if (cur_color != bg_color_int) {
+                    // if we're not already on the bg color, switch to it
+                    cur_color = bg_color_int;
+                    color_rgb(args->bg_color);
+                }
             }
+
+            // fill the cell with whatever color we land on
+            fill_cell(i % board_width, i / board_width);
         }
 
+        color_rgb(args->bg_color);
+        cur_color = bg_color_int;
         // fill one more row and col with bg to make sure we fill the whole screen
         for (int i = 0; i < board_width; i++) {
-            color_rgb(args->bg_color);
             fill_cell(i, board_height);
         }
-
         for (int i = 0; i < board_height; i++) {
-            color_rgb(args->bg_color);
             fill_cell(board_width, i);
         }
 
-        usleep(100000); // .1 second
 
+        /* GENERATION PORTION */
         // Now generate the next pattern
-        // XNextEvent(display, &event); old event handling code
         bool* next_pattern = generate_next_pattern(current_pattern, board_width, board_height);
-        // freeing of old pattern handled in generate_next_pattern
+        free(current_pattern);
         current_pattern = next_pattern;
+
+        if (dead/total >= .95) {
+            // if 95% of the board is dead, reset
+            randomize_pattern(current_pattern, board_width, board_height, 20);
+            color_rgb(args->bg_color);
+            cur_color = bg_color_int;
+            fill_background();
+        }
+        // reset dead count
+        dead = 0;
+
+        // sleep for the remainder of the frame time, which is usually 100% of it
+        time_t end_time = time(NULL);
+        int sleep_time = 1000000 / args->framerate - (end_time - start_time);
+        if (sleep_time > 0) {
+            usleep(sleep_time);
+        }
     }
 
     // cleanup
