@@ -8,57 +8,50 @@ Creation Date: 10-07-2024
 Description: This program reads a GoL board state and generates some number of future board states according
             to the rules of Conway's Game of Life
 */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include "game_of_life.h"
 
-// Function prototypes
-bool* read_start_pattern(char* filename, int max_width, int max_height);
-bool* generate_next_pattern(bool* pattern, int width, int height);
-int count_live_neighbors(bool* pattern, int width, int height, int cell_index);
-void print_pattern(bool* pattern, int width, int height);
-void randomize_pattern(bool* pattern, int width, int height);
+// commented out to keep this file as a library
+// int main(int argc, char* argv[]){
+//     if (argc < 3) {
+//         fprintf(stderr, "Usage: %s <filename> <generations>", argv[0]);
+//         return EXIT_FAILURE;
+//     }
 
+//     int generations = atoi(argv[2]);
+//     char* filename = argv[1];
 
-int main(int argc, char* argv[]){
-    if (argc < 3) {
-        fprintf(stderr, "Usage: %s <filename> <generations>", argv[0]);
-        return EXIT_FAILURE;
-    }
+//     int screen_ratio_width = 16;
+//     int screen_ratio_height = 9;
 
-    int generations = atoi(argv[2]);
-    char* filename = argv[1];
+//     int resolution_scaling_factor = 3;
 
-    int screen_ratio_width = 16;
-    int screen_ratio_height = 9;
+//     int board_width = screen_ratio_width * resolution_scaling_factor;
+//     int board_height = screen_ratio_height * resolution_scaling_factor;
 
-    int resolution_scaling_factor = 3;
+//     bool* start_pattern = read_start_pattern(filename, board_width, board_height);
+//     randomize_pattern(start_pattern, board_width, board_height); //comment this out to use the start_pattern.txt
+//     if (start_pattern == NULL) {
+//         return EXIT_FAILURE;
+//     }
 
-    int board_width = screen_ratio_width * resolution_scaling_factor;
-    int board_height = screen_ratio_height * resolution_scaling_factor;
+//     // run main loop
+//     bool* current_pattern = start_pattern;
+//     for (int i = 0; i < generations; i++) {
+//         print_pattern(current_pattern, board_width, board_height);
+//         usleep(100000); // .1 second
+//         bool* next_pattern = generate_next_pattern(current_pattern, board_width, board_height);
+//         // freeing of old pattern handled in generate_next_pattern
+//         current_pattern = next_pattern;
+//     }
 
-    bool* start_pattern = read_start_pattern(filename, board_width, board_height);
-    randomize_pattern(start_pattern, board_width, board_height); //comment this out to use the start_pattern.txt
-    if (start_pattern == NULL) {
-        return EXIT_FAILURE;
-    }
-
-    // run main loop
-    bool* current_pattern = start_pattern;
-    for (int i = 0; i < generations; i++) {
-        print_pattern(current_pattern, board_width, board_height);
-        usleep(100000); // .1 second
-        bool* next_pattern = generate_next_pattern(current_pattern, board_width, board_height);
-        free(current_pattern);
-        current_pattern = next_pattern;
-    }
-
-    return 0;
-}
+//     return 0;
+// }
 
 
 bool* read_start_pattern(char* filename, int max_width, int max_height) {
@@ -142,6 +135,7 @@ bool* generate_next_pattern(bool* pattern, int width, int height) {
         }
     }
 
+    free (pattern);
     return next_pattern;
 }
 

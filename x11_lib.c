@@ -1,7 +1,10 @@
-/* life_lib.c 
+/* x11_lib.c 
 Library file for the game of life displaying to X11
 Will basically have some X11 helpers that will be used in the main file
 */
+#ifndef X11_LIB
+#define X11_LIB
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
@@ -20,12 +23,13 @@ Will basically have some X11 helpers that will be used in the main file
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "x11_lib.h" // our x11_lib.h file
+
 // Helpful macros and globals
 #define OPAQUE 0xffffffff
 
 #define NAME "SimWall"
 #define VERSION "0.1"
-#define CELL_SIZE 25
 
 #define ATOM(a) XInternAtom(display, #a, False)
 
@@ -180,11 +184,52 @@ unsigned char parse_args(int argc, char **argv) {
     return flags;
 }
 
+void color(unsigned short r, unsigned short g, unsigned short b) {
+    /* Sets foreground paint color */
+    XSetForeground(display, gc, r << 16 | g << 8 | b);
+}
+
+void fill_cell(int x, int y) {
+    /* Fills a cell at x, y with the current color */
+    XFillRectangle(display, window.window, gc, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+}
+
+void fill_background() {
+    /* Fills the background with the current color */
+    XFillRectangle(display, window.window, gc, 0, 0, window.width, window.height);
+}
+
+void cleanup() {
+    /* Cleans everything up, be sure to call when done */
+    XFreeGC(display, gc);
+    XDestroyWindow(display, window.window);
+    XCloseDisplay(display);
+}
+
+int screen_width() {
+    /* Returns the width of the screen */
+    return DisplayWidth(display, screen);
+}
+
+int screen_height() {
+    /* Returns the height of the screen */
+    return DisplayHeight(display, screen);
+}
+
 int window_setup(unsigned char args) {
     /* Main helper function to run here. Will do all the window setup 
     Takes flag byte parsed by parse_args */
 
     /* ALL OF THIS TO SET UP THE WINDOW! */
+
+    // Daemon handling after all is set up
+    if (args & DAEMONIZE) {
+        pid = fork();
+        if (pid != 0) {
+            // end parent early to effectively start as a daemon
+            exit(0);
+        }
+    }
 
     // screen #
     int screen;
@@ -217,8 +262,7 @@ int window_setup(unsigned char args) {
                                   0L,
                                   0L,
                                   False,
-                                  StructureNotifyMask | ExposureMask |
-                                      ButtonPressMask | ButtonReleaseMask,
+                                  0xFFFFFF, // flags related to events in X.h to listen for. For now, do all 24!
                                   0L,
                                   False,
                                   0,
@@ -254,34 +298,43 @@ int window_setup(unsigned char args) {
     // Absolute magic
     XChangeProperty(display, window.window, xa, XA_ATOM, 32, PropModeReplace, (unsigned char *)&prop, 1);
 
-    // Select input events to listen for
-    XSelectInput(display, window.window, ExposureMask | KeyPressMask);
-
     // No input (click on desktop, you see icons) code
-        // looks like we make a touchable region, then kill it so we can't touch it anymore
-    Region region;
+    // Region region = XCreateRegion();
+    // if (region) {
+    //     XShapeCombineRegion(display, window.window, ShapeInput, 0, 0, region, ShapeSet);
+    //     XDestroyRegion(region);
+    // }
 
+    XRectangle rect;
+    rect.x = 0;
+    rect.y = 0;
+    rect.width = window.width;
+    rect.height = window.height;
+
+    // Create a region that covers the full window for visibility
+    Region region = XCreateRegion();
+    XUnionRectWithRegion(&rect, region, region);
+
+    // Combine this region with ShapeBounding to ensure the window is visible
+    XShapeCombineRegion(display, window.window, ShapeBounding, 0, 0, region, ShapeSet);
+
+    // Use an empty region for ShapeInput so the window doesn’t capture inputs
     region = XCreateRegion();
-    if (region) {
-        XShapeCombineRegion(display, window.window, ShapeInput, 0, 0, region, ShapeSet);
-        XDestroyRegion(region);
-    }
+    XShapeCombineRegion(display, window.window, ShapeInput, 0, 0, region, ShapeSet);
 
-    /* DAEMON STUFF REAL QUICK */
-    if (args & DAEMONIZE) {
-        pid = fork();
-        if (pid != 0) {
-            // end parent early to effectively start as a daemon
-            return 0;
-        }
-    }
+    XDestroyRegion(region);
 
     // Make the window visible!!
     XMapWindow(display, window.window);
+    XSync(display, False); // Ensure the mapping command reaches the X server
 
+    // Select input events to listen for
+    XSelectInput(display, window.window, 0xFFFFFF);
 
     // Create a graphics context for drawing
     gc = XCreateGC(display, window.window, 0, NULL);
 
     /* WINDOW FINALLY SET UP */
 }
+
+#endif // X11_LIB

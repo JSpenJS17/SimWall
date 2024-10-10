@@ -1,9 +1,9 @@
 LIBS = -lX11 -lXext -lXrender
 OUTNAME = simwall
-CFILE = simwall_demo.c
+CFILES = $(shell find . -name "*.c")
 
 all:
-	gcc $(CFILE) $(LIBS) -o $(OUTNAME)
+	gcc $(CFILES) $(LIBS) -o $(OUTNAME)
 
-clean: 
+clean:
 	rm -f $(OUTNAME)
