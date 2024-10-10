@@ -33,9 +33,6 @@ Will basically have some X11 helpers that will be used in the main file
 
 #define ATOM(a) XInternAtom(display, #a, False)
 
-// Flag setup for later if there are more args
-#define DAEMONIZE 0b00000001
-
 // Globals for display information
 Display *display = NULL;
 int display_width;
@@ -52,8 +49,8 @@ struct window {
   Visual *visual;
   Colormap colourmap;
 
-  unsigned int width;
-  unsigned int height;
+  uint width;
+  uint height;
   int x;
   int y;
 } window;
@@ -77,9 +74,9 @@ static void init_x11() {
 
 static Window find_subwindow(Window win, int w, int h) {
     /* Finds a subwindow. Called by find_desktop_window() */
-    unsigned int i, j;
+    uint i, j;
     Window troot, parent, *children;
-    unsigned int n;
+    uint n;
 
     /* search subwindows with same size as display or work area */
 
@@ -114,12 +111,12 @@ static Window find_desktop_window(Window *p_root, Window *p_desktop) {
     /* Finds the user's desktop window. Called by window_setup() */
     Atom type;
     int format, i;
-    unsigned long nitems, bytes;
-    unsigned int n;
+    ulong nitems, bytes;
+    uint n;
     Window root = RootWindow(display, screen);
     Window win = root;
     Window troot, parent, *children;
-    unsigned char *buf = NULL;
+    uchar *buf = NULL;
 
     if (!p_root || !p_desktop) {
         return 0;
@@ -170,23 +167,14 @@ static Window find_desktop_window(Window *p_root, Window *p_desktop) {
     return win;
 }
 
-unsigned char parse_args(int argc, char **argv) {
-    /* Parses the args for the program. 
-    Returns a flag byte with some flags! */
-    unsigned char flags = 0;
-
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-D") == 0) {
-            flags |= DAEMONIZE;
-        }
-    }
-
-    return flags;
+void color(ushort r, ushort g, ushort b) {
+    /* Sets foreground paint color using three shorts */
+    XSetForeground(display, gc, r << 16 | g << 8 | b);
 }
 
-void color(unsigned short r, unsigned short g, unsigned short b) {
-    /* Sets foreground paint color */
-    XSetForeground(display, gc, r << 16 | g << 8 | b);
+void color_rgb(RGB rgb) {
+    /* Sets foreground paint color using RGB struct */
+    XSetForeground(display, gc, rgb.r << 16 | rgb.g << 8 | rgb.b);
 }
 
 void fill_cell(int x, int y) {
@@ -199,7 +187,7 @@ void fill_background() {
     XFillRectangle(display, window.window, gc, 0, 0, window.width, window.height);
 }
 
-void cleanup() {
+void x11_cleanup() {
     /* Cleans everything up, be sure to call when done */
     XFreeGC(display, gc);
     XDestroyWindow(display, window.window);
@@ -216,21 +204,10 @@ int screen_height() {
     return DisplayHeight(display, screen);
 }
 
-int window_setup(unsigned char args) {
-    /* Main helper function to run here. Will do all the window setup 
-    Takes flag byte parsed by parse_args */
-
+int window_setup() {
+    /* Main helper function to run here. Will do all the window setup */
     /* ALL OF THIS TO SET UP THE WINDOW! */
-
-    // Daemon handling after all is set up
-    if (args & DAEMONIZE) {
-        pid = fork();
-        if (pid != 0) {
-            // end parent early to effectively start as a daemon
-            exit(0);
-        }
-    }
-
+    
     // screen #
     int screen;
 
@@ -296,7 +273,7 @@ int window_setup(unsigned char args) {
     Atom prop = ATOM(_NET_WM_WINDOW_TYPE_DESKTOP);
 
     // Absolute magic
-    XChangeProperty(display, window.window, xa, XA_ATOM, 32, PropModeReplace, (unsigned char *)&prop, 1);
+    XChangeProperty(display, window.window, xa, XA_ATOM, 32, PropModeReplace, (uchar*)&prop, 1);
 
     // No input (click on desktop, you see icons) code
     // Region region = XCreateRegion();

@@ -17,9 +17,10 @@ Description: This program reads a GoL board state and generates some number of f
 #include "game_of_life.h"
 
 // commented out to keep this file as a library
+    // can uncomment for testing purposes if needed
 // int main(int argc, char* argv[]){
 //     if (argc < 3) {
-//         fprintf(stderr, "Usage: %s <filename> <generations>", argv[0]);
+//         fprintf(stderr, "Usage: %s <filename> <generations>\n", argv[0]);
 //         return EXIT_FAILURE;
 //     }
 
