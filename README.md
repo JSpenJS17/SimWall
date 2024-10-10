@@ -4,6 +4,7 @@ Display made with X11 libraries in C.
 
 ## TODO:
 Remove old Python demos, clean up repo
+
 Add subdirectories for Linux, Mac, Windows w/ common library
 
 ## Linux:
