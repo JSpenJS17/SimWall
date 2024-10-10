@@ -182,6 +182,11 @@ void fill_cell(int x, int y) {
     XFillRectangle(display, window.window, gc, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
 }
 
+void fill_circle(int x, int y) {
+    /* Fills a circle at x, y with the current color */
+    XFillArc(display, window.window, gc, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, 0, 360*64);
+}
+
 void fill_background() {
     /* Fills the background with the current color */
     XFillRectangle(display, window.window, gc, 0, 0, window.width, window.height);

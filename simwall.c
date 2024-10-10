@@ -15,7 +15,8 @@ Heavily abstracted away into not-so-pretty libraries
 #include "x11_lib.h"
 #include "c_version/game_of_life.h"
 
-#define DAEMONIZE 1
+#define DAEMONIZE   1
+#define CIRCLE      1 << 1
 
 /* General purpose cmd-line args 
 Can add more later if needed */
@@ -35,6 +36,7 @@ void usage() {
     fprintf(stderr, "  -bg 000000: Set the background (dead cell) color\n");
     fprintf(stderr, "  -fg FFFFFF: Set the foreground (alive cell) color\n");
     fprintf(stderr, "  -fps 10.0: Set the framerate (can be decimal)\n");
+    fprintf(stderr, "  -c: Draw a circle instead of a square\n");
     fprintf(stderr, "Example: simwall -bg FF00FF -fg 00FF00 -fps 10.0\n");
 }
 
@@ -63,6 +65,10 @@ Args* parse_args(int argc, char **argv) {
                  strcmp(argv[i], "--daemonize") == 0|| 
                  strcmp(argv[i], "-d") == 0) {
             args->flags |= DAEMONIZE;
+        }
+        // circle shape
+        else if (strcmp(argv[i], "-c") == 0) {
+            args->flags |= CIRCLE;
         }
         // background color
         else if (strcmp(argv[i], "-bg") == 0) {
@@ -161,6 +167,14 @@ int main(int argc, char **argv) {
     int cur_color = bg_color_int;
     color_rgb(args->bg_color);
 
+    // track first loop
+        // this is bad but if done up here it doesn't display for some reason
+    bool first = true;
+
+    // define function pointer to fill function so we can
+    // change it based on the shape
+    void (*fill_func)(int, int) = args->flags & CIRCLE ? fill_circle : fill_cell;
+
     // Main loop
     while (1) {
         // get start time
@@ -186,17 +200,17 @@ int main(int argc, char **argv) {
             }
 
             // fill the cell with whatever color we land on
-            fill_cell(i % board_width, i / board_width);
+            (*fill_func)(i % board_width, i / board_width);
         }
 
         color_rgb(args->bg_color);
         cur_color = bg_color_int;
         // fill one more row and col with bg to make sure we fill the whole screen
         for (int i = 0; i < board_width; i++) {
-            fill_cell(i, board_height);
+            (*fill_func)(i, board_height);
         }
         for (int i = 0; i < board_height; i++) {
-            fill_cell(board_width, i);
+            (*fill_func)(board_width, i);
         }
 
 
@@ -218,6 +232,12 @@ int main(int argc, char **argv) {
         int sleep_time = 1000000 / args->framerate - (end_time - start_time);
         if (sleep_time > 0) {
             usleep(sleep_time);
+        }
+
+        // if end of first loop, fill background JUST in case
+        if (first) {
+            fill_background();
+            first = false;
         }
     }
 

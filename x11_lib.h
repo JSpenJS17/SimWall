@@ -22,6 +22,7 @@ typedef struct RGB RGB;
 void x11_cleanup();
 void fill_background();
 void fill_cell(int x, int y);
+void fill_circle(int x, int y);
 void color(ushort r, ushort g, ushort b);
 void color_rgb(RGB rgb);
 int window_setup();
