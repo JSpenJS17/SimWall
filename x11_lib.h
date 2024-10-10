@@ -1,7 +1,8 @@
 #ifndef X11_LIB_H
 #define X11_LIB_H
 
-#define CELL_SIZE 25
+// should end up being a cmd-line arg
+#define CELL_SIZE 15
 
 /* typedefs for my convenience */
 typedef unsigned char uchar;

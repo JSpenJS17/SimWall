@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
     float dead = 0;
     const float total = board_width * board_height;
 
-    // int representations to save some code in the loop
+    // int representations to save some code in the loop (i know, i know)
     int bg_color_int = args->bg_color.r << 16 | args->bg_color.g << 8 | args->bg_color.b;
     int fg_color_int = args->fg_color.r << 16 | args->fg_color.g << 8 | args->fg_color.b;
 
@@ -207,11 +207,8 @@ int main(int argc, char **argv) {
         current_pattern = next_pattern;
 
         if (dead/total >= .95) {
-            // if 95% of the board is dead, reset
-            randomize_pattern(current_pattern, board_width, board_height, 20);
-            color_rgb(args->bg_color);
-            cur_color = bg_color_int;
-            fill_background();
+            // if 95% of the board is dead, add more cells
+            add_random(current_pattern, board_width, board_height, 10);
         }
         // reset dead count
         dead = 0;

@@ -179,3 +179,13 @@ void randomize_pattern(bool* pattern, int width, int height, int percent_alive) 
         pattern[i] = (rand() % 100) < percent_alive;
     }
 }
+
+void add_random(bool* pattern, int width, int height, int percent_alive) {
+    // Airdrop some extra cells!!
+    srand(time(NULL));
+    for (int i = 0; i < width * height; i++) {
+        if (pattern[i] == 0) {
+            pattern[i] = (rand() % 100) < percent_alive;
+        }
+    }
+}
