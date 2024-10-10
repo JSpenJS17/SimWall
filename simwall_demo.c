@@ -153,7 +153,16 @@ static Window find_desktop_window(Window *p_root, Window *p_desktop) {
     return win;
 }
 
-int main() {
+int main(int argc, char **argv) {
+
+    // parse args real quick (just -D for daemon for now)
+    bool daemonize = false;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-D") == 0) {
+            daemonize = true;
+        }
+    }
+
     /* ALL OF THIS TO SET UP THE WINDOW! */
 
     // screen #
@@ -239,6 +248,15 @@ int main() {
     if (region) {
         XShapeCombineRegion(display, window.window, ShapeInput, 0, 0, region, ShapeSet);
         XDestroyRegion(region);
+    }
+
+    // DAEMON STUFF
+    if (daemonize) {
+        pid = fork();
+        if (pid != 0) {
+            // end parent early to effectively start as a daemon
+            return 0;
+        }
     }
 
     // Make the window visible!!

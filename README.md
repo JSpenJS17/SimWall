@@ -3,7 +3,10 @@ Implements a Conway's Game of Life wallpaper.
 Display made in Python using Pygame.
 
 ## UPDATE TO TECH DEMO:
-Can run
+Can run `make` to build
+`./simwall` will run process
+`./simwall -D` for daemon
+to kill: `killall simwall`
 
 ## For Linux:
     - Install dependencies
