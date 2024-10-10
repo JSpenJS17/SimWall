@@ -2,6 +2,9 @@ Implements a Conway's Game of Life wallpaper.
 
 Display made in Python using Pygame.
 
+## UPDATE TO TECH DEMO:
+Can run
+
 ## For Linux:
     - Install dependencies
 `sudo apt-get install xorg-dev build-essential libx11-dev x11proto-xext-dev libxrender-dev libxext-dev
@@ -20,6 +23,5 @@ pip install pygame screeninfo`
 Ctrl+b d`
 This will start a tmux session, then you run start.sh, then you daemonize the tmux session.
 We'll add a daemon mode in a future release.
-
 
 

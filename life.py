@@ -1,12 +1,13 @@
 import numpy as np
 import time
 import os
+import sys
 
 # Set default grid size
 # GRID_SIZE = (monitor.height//10, monitor.width // 10) # old monitor display size code, will be used later
 # get terminal size for grid size
 rows, columns = os.popen('stty size', 'r').read().split()
-GRID_SIZE = (int(rows), int(columns)//2)
+GRID_SIZE = (int(rows)+1, int(columns)//2)
 # Set default cell size
 CELL_SIZE = 10
 
@@ -37,20 +38,19 @@ def next_generation(grid):
     return new_grid
 
 def clear_screen():
-    print("\033[H\033[J")
+    print("\033[H\033[J", end="")
 
 # Main loop
 def run_game_of_life():
     grid = initialize_grid(.2)
     running = True
-    print(grid.shape)
 
     while running:
         grid = next_generation(grid)  # Get the next generation
 
-        # Display the grid
         clear_screen()
 
+        # Display the grid
         out_str = ""
         for x in range(GRID_SIZE[0]):
             for y in range(GRID_SIZE[1]):
@@ -59,10 +59,10 @@ def run_game_of_life():
                     out_str += "██"
                 else:
                     out_str += "  "
-            out_str += "\n"
 
-        print(out_str)
+        print(out_str, end="\r")
         time.sleep(.1)
+
 
 if __name__ == "__main__":
     run_game_of_life()
