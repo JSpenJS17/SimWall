@@ -3,11 +3,11 @@
 
 typedef enum {
     DEAD,
-    DYING,
-    ALIVE
-} State;
+    ALIVE,
+    DYING
+} BB_State;
 
-int* generate_next_pattern(int* pattern, int board_width,int board_height);
-int* generate_random_pattern(int width, int height);
-void add_life(int* pattern, int width, int height);
+int* bb_gen_next(int* pattern, int board_width,int board_height);
+int* bb_gen_random(int width, int height, int percent_alive);
+void bb_add_life(int* pattern, int width, int height, int percent_alive);
 #endif // BRIANS_BRAIN_H

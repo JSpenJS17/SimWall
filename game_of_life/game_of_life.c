@@ -18,6 +18,7 @@ Description: This program reads a GoL board state and generates some number of f
 
 // commented out to keep this file as a library
     // can uncomment for testing purposes if needed
+    // since I renamed some of the functions you'll have to sort it out though
 // int main(int argc, char* argv[]){
 //     if (argc < 3) {
 //         fprintf(stderr, "Usage: %s <filename> <generations>\n", argv[0]);
@@ -55,7 +56,7 @@ Description: This program reads a GoL board state and generates some number of f
 // }
 
 
-bool* read_start_pattern(char* filename, int max_width, int max_height) {
+int* read_start_pattern(char* filename, int max_width, int max_height) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         perror("Failed to open file");
@@ -86,7 +87,7 @@ bool* read_start_pattern(char* filename, int max_width, int max_height) {
     }
 
     // Allocate memory for the full board
-    bool* board = (bool*)calloc(max_width * max_height, sizeof(bool));
+    int* board = (int*)calloc(max_width * max_height, sizeof(int));
     if (board == NULL) {
         perror("Failed to allocate memory for board");
         fclose(file);
@@ -116,8 +117,8 @@ bool* read_start_pattern(char* filename, int max_width, int max_height) {
 }
 
 
-bool* generate_next_pattern(bool* pattern, int width, int height) {
-    bool* next_pattern = (bool*)malloc(width * height * sizeof(bool));
+int* gol_gen_next(int* pattern, int width, int height) {
+    int* next_pattern = (int*)malloc(width * height * sizeof(int));
     if (next_pattern == NULL) {
         perror("Failed to allocate memory for next pattern");
         exit(EXIT_FAILURE);
@@ -126,7 +127,7 @@ bool* generate_next_pattern(bool* pattern, int width, int height) {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int cell_index = y * width + x;
-            int live_neighbors = count_live_neighbors(pattern, width, height, cell_index);
+            int live_neighbors = gol_count_live_neighbors(pattern, width, height, cell_index);
 
             if (pattern[cell_index]) {
                 next_pattern[cell_index] = (live_neighbors == 2 || live_neighbors == 3);
@@ -140,7 +141,7 @@ bool* generate_next_pattern(bool* pattern, int width, int height) {
 }
 
 
-int count_live_neighbors(bool* pattern, int width, int height, int cell_index){
+int gol_count_live_neighbors(int* pattern, int width, int height, int cell_index){
     int live_neighbors_count = 0;
     int cell_x = cell_index % width;
     int cell_y = cell_index / width;
@@ -162,7 +163,7 @@ int count_live_neighbors(bool* pattern, int width, int height, int cell_index){
 }
 
 
-void print_pattern(bool* pattern, int width, int height) {
+void print_pattern(int* pattern, int width, int height) {
     system("clear");
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
@@ -173,14 +174,28 @@ void print_pattern(bool* pattern, int width, int height) {
     printf("\n");
 }
 
-void randomize_pattern(bool* pattern, int width, int height, int percent_alive) {
-    srand(time(NULL));
-    for (int i = 0; i < width * height; i++) {
-        pattern[i] = (rand() % 100) < percent_alive;
+int* gol_gen_random(int width, int height, int percent_alive) {
+    /* Generates a random board on the heap */
+    int* pattern = (int*)malloc(width * height * sizeof(int));
+    if (pattern == NULL) {
+        perror("Failed to allocate memory for random pattern");
+        exit(EXIT_FAILURE);
     }
+
+    srand(time(NULL));
+
+    for (int i = 0; i < width * height; i++) {
+        if (rand() % 100 < percent_alive) {
+            pattern[i] = 1;
+        } else {
+            pattern[i] = 0;
+        }
+    }
+
+    return pattern;
 }
 
-void add_random(bool* pattern, int width, int height, int percent_alive) {
+void gol_add_life(int* pattern, int width, int height, int percent_alive) {
     // Airdrop some extra cells!!
     srand(time(NULL));
     for (int i = 0; i < width * height; i++) {

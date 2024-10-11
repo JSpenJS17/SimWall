@@ -17,7 +17,7 @@ Description: This program reads a Brain's Brain board state and generates some n
 
 #include "brians_brain.h"
 
-int count_live_neighbors(int* pattern, int width, int height, int cell_index) {
+int bb_count_live_neighbors(int* pattern, int width, int height, int cell_index) {
     int live_neighbors_count = 0;
     int cell_x = cell_index % width;
     int cell_y = cell_index / width;
@@ -31,7 +31,7 @@ int count_live_neighbors(int* pattern, int width, int height, int cell_index) {
 
             if (neighbor_x >= 0 && neighbor_x < width && neighbor_y >= 0 && neighbor_y < height) {
                 int neighbor_index = neighbor_y * width + neighbor_x;
-                if (pattern[neighbor_index] == 2) {
+                if (pattern[neighbor_index] == ALIVE) {
                     live_neighbors_count++;
                 }
             }
@@ -42,7 +42,7 @@ int count_live_neighbors(int* pattern, int width, int height, int cell_index) {
 
 
 // Patterns should only contain 0s (dead), 1s(dying), and 2s (alive)
-int* generate_next_pattern(int* pattern, int board_width,int board_height){
+int* bb_gen_next(int* pattern, int board_width,int board_height){
     int* next_pattern = (int*)malloc(board_width * board_height * sizeof(int));
     if (next_pattern == NULL) {
         perror("Failed to allocate memory for next pattern");
@@ -52,15 +52,15 @@ int* generate_next_pattern(int* pattern, int board_width,int board_height){
     for (int y = 0; y < board_height; y++) {
         for (int x = 0; x < board_width; x++) {
             int cell_index = y * board_width + x;
-            int live_neighbors = count_live_neighbors(pattern, board_width, board_height, cell_index);
+            int live_neighbors = bb_count_live_neighbors(pattern, board_width, board_height, cell_index);
             int cell_value = pattern[cell_index];
 
             if (cell_value == DEAD && live_neighbors == 2) {
-                next_pattern[cell_index] = 2;
+                next_pattern[cell_index] = ALIVE;
             } else if (cell_value == DYING) {
-                next_pattern[cell_index] = 0;
+                next_pattern[cell_index] = DEAD;
             } else if (cell_value == ALIVE) {
-                next_pattern[cell_index] = 1;
+                next_pattern[cell_index] = DYING;
             } else {
                 next_pattern[cell_index] = cell_value;
             }
@@ -70,7 +70,7 @@ int* generate_next_pattern(int* pattern, int board_width,int board_height){
 }
 
 
-int* generate_random_pattern(int width, int height) {
+int* bb_gen_random(int width, int height, int percent_alive){
     int* pattern = (int*)malloc(width * height * sizeof(int));
     if (pattern == NULL) {
         perror("Failed to allocate memory for random pattern");
@@ -80,7 +80,11 @@ int* generate_random_pattern(int width, int height) {
     srand(time(NULL));
 
     for (int i = 0; i < width * height; i++) {
-        pattern[i] = (rand() % 2 == 0) ? 2 : 0;
+        if (rand() % 100 < percent_alive) {
+            pattern[i] = ALIVE;
+        } else {
+            pattern[i] = DEAD;
+        }
     }
 
     return pattern;
@@ -107,7 +111,7 @@ float measure_life(int* pattern, int board_width, int board_height){
     int live_cells = 0;
 
     for (int i = 0; i < total_cells; i++) {
-        if (pattern[i] == 2) {
+        if (pattern[i] == ALIVE) {
             live_cells++;
         }
     }
@@ -115,12 +119,12 @@ float measure_life(int* pattern, int board_width, int board_height){
     return life;
 }
 
-void add_life(int* pattern, int width, int height){
+void bb_add_life(int* pattern, int width, int height, int percent_alive){
     srand(time(NULL));
     for (int i = 0; i < width * height; i++){
-        if (pattern[i] == 0){
-            if (rand() % 10 == 0) {
-                pattern[i] = 2;
+        if (pattern[i] == DEAD){
+            if (rand() % 100 < percent_alive){
+                pattern[i] = ALIVE;
             }
         }
     }
@@ -133,17 +137,17 @@ void add_life(int* pattern, int width, int height){
 
 //     int generations = 1000;
 
-//     int* current_pattern = generate_random_pattern(board_width, board_height);
+//     int* current_pattern = bb_gen_random(board_width, board_height);
     
 //     for  (int i = 0; i < generations; i++){
 //         system("clear");
 //         printf("\n");
 //         print_board(current_pattern, board_width, board_height);
-//         current_pattern = generate_next_pattern(current_pattern, board_width, board_height);
+//         current_pattern = bb_gen_next(current_pattern, board_width, board_height);
 //         float life = measure_life(current_pattern, board_width, board_height);
 //         printf("Life: %f", life);
 //         if (life < 0.01){
-//             add_life(current_pattern, board_width, board_height);
+//             bb_add_life(current_pattern, board_width, board_height);
 //         }
 //         usleep(250000);
 //     }
