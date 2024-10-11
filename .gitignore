@@ -1,4 +1,3 @@
-c_version/game_of_life
-c_version/test.txt
+game_of_life/game_of_life
 .vscode/*
 simwall
