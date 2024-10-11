@@ -24,4 +24,5 @@ Keybinds:
 `Ctrl-Alt-A` Enter/Exit add mode
 
 Add Mode:
+
     - Hold the left mouse button to add cells
