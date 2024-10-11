@@ -5,24 +5,6 @@ Will basically have some X11 helpers that will be used in the main file
 #ifndef X11_LIB
 #define X11_LIB
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/Xatom.h>
-#include <X11/Xproto.h>
-
-#include <X11/extensions/shape.h>
-#include <X11/extensions/Xrender.h>
-
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
 #include "x11_lib.h" // our x11_lib.h file
 
 // Helpful macros and globals
@@ -177,14 +159,14 @@ void color_rgb(RGB rgb) {
     XSetForeground(display, gc, rgb.r << 16 | rgb.g << 8 | rgb.b);
 }
 
-void fill_cell(int x, int y) {
+void fill_cell(int x, int y, int size) {
     /* Fills a cell at x, y with the current color */
-    XFillRectangle(display, window.window, gc, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+    XFillRectangle(display, window.window, gc, x*size, y*size, size, size);
 }
 
-void fill_circle(int x, int y) {
+void fill_circle(int x, int y, int size) {
     /* Fills a circle at x, y with the current color */
-    XFillArc(display, window.window, gc, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, 0, 360*64);
+    XFillArc(display, window.window, gc, x*size, y*size, size, size, 0, 360*64);
 }
 
 void fill_background() {
@@ -209,8 +191,9 @@ int screen_height() {
     return DisplayHeight(display, screen);
 }
 
-int window_setup() {
-    /* Main helper function to run here. Will do all the window setup */
+Display* window_setup() {
+    /* Main helper function to run here. Will do all the window setup
+    Returns up a pointer to the display if you want it */
     /* ALL OF THIS TO SET UP THE WINDOW! */
     // screen #
     int screen = 0;
@@ -218,10 +201,10 @@ int window_setup() {
     // start up x11 libs, standard stuff
     init_x11();
     if (!display) {
-        return 1;
+        return NULL;
     }
 
-    // define the depth we want (0) and some flags
+    // define the pixel depth we want (0) and some flags
     int depth = 0, flags = CWOverrideRedirect | CWBackingStore;
     // no clue what this is
     Visual *visual = NULL;
@@ -229,7 +212,7 @@ int window_setup() {
     // FIND our DESKTOP WINDOW! very important
     if (!find_desktop_window(&window.root, &window.desktop)) {
         fprintf(stderr, NAME ": Error: couldn't find desktop window\n");
-        return 1;
+        return NULL;
     }
 
     // Set some attrs, I have no idea what any of these do :D
@@ -280,30 +263,12 @@ int window_setup() {
     XChangeProperty(display, window.window, xa, XA_ATOM, 32, PropModeReplace, (uchar*)&prop, 1);
 
     // No input (click on desktop, you see icons) code
-    // Region region = XCreateRegion();
-    // if (region) {
-    //     XShapeCombineRegion(display, window.window, ShapeInput, 0, 0, region, ShapeSet);
-    //     XDestroyRegion(region);
-    // }
-
-    XRectangle rect;
-    rect.x = 0;
-    rect.y = 0;
-    rect.width = window.width;
-    rect.height = window.height;
-
-    // Create a region that covers the full window for visibility
+        // unfortunately, this prevents us from interacting with the window
     Region region = XCreateRegion();
-    XUnionRectWithRegion(&rect, region, region);
-
-    // Combine this region with ShapeBounding to ensure the window is visible
-    XShapeCombineRegion(display, window.window, ShapeBounding, 0, 0, region, ShapeSet);
-
-    // Use an empty region for ShapeInput so the window doesn’t capture inputs
-    region = XCreateRegion();
-    XShapeCombineRegion(display, window.window, ShapeInput, 0, 0, region, ShapeSet);
-
-    XDestroyRegion(region);
+    if (region) {
+        XShapeCombineRegion(display, window.window, ShapeInput, 0, 0, region, ShapeSet);
+        XDestroyRegion(region);
+    }
 
     // Make the window visible!!
     XMapWindow(display, window.window);
@@ -315,6 +280,7 @@ int window_setup() {
     // Create a graphics context for drawing
     gc = XCreateGC(display, window.window, 0, NULL);
 
+    return display;
     /* WINDOW FINALLY SET UP */
 }
 

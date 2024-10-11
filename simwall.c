@@ -18,6 +18,8 @@ Heavily abstracted away into not-so-pretty libraries
 #define DAEMONIZE   1
 #define CIRCLE      1 << 1
 
+int CELL_SIZE = 25;
+
 /* General purpose cmd-line args 
 Can add more later if needed */
 struct Args {
@@ -37,6 +39,7 @@ void usage() {
     fprintf(stderr, "  -fg FFFFFF: Set the foreground (alive cell) color\n");
     fprintf(stderr, "  -fps 10.0: Set the framerate (can be decimal)\n");
     fprintf(stderr, "  -c: Draw a circle instead of a square\n");
+    fprintf(stderr, "  -s 25: Set the size of the cells\n");
     fprintf(stderr, "Example: simwall -bg FF00FF -fg 00FF00 -fps 10.0\n");
 }
 
@@ -106,6 +109,7 @@ Args* parse_args(int argc, char **argv) {
             sscanf(fg_color_str, "%2hx%2hx%2hx", &args->fg_color.r, &args->fg_color.g, &args->fg_color.b);
             i++; // increment i to simulate parsing the hex string
         } 
+        // framerate
         else if (strcmp(argv[i], "-fps") == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -fps\n");
@@ -114,6 +118,16 @@ Args* parse_args(int argc, char **argv) {
             }
             args->framerate = atof(argv[i+1]);
             i += 1; 
+        }
+        // cell size
+        else if (strcmp(argv[i], "-s") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "Not enough arguments for -s\n");
+                usage();
+                exit(1);
+            }
+            CELL_SIZE = atoi(argv[i+1]);
+            i += 1;
         }
         else {
             fprintf(stderr, "Unknown argument: %s\n", argv[i]);
@@ -173,7 +187,7 @@ int main(int argc, char **argv) {
 
     // define function pointer to fill function so we can
     // change it based on the shape
-    void (*fill_func)(int, int) = args->flags & CIRCLE ? fill_circle : fill_cell;
+    void (*fill_func)(int, int, int) = args->flags & CIRCLE ? fill_circle : fill_cell;
 
     // Main loop
     while (1) {
@@ -200,17 +214,17 @@ int main(int argc, char **argv) {
             }
 
             // fill the cell with whatever color we land on
-            (*fill_func)(i % board_width, i / board_width);
+            (*fill_func)(i % board_width, i / board_width, CELL_SIZE);
         }
 
         color_rgb(args->bg_color);
         cur_color = bg_color_int;
         // fill one more row and col with bg to make sure we fill the whole screen
         for (int i = 0; i < board_width; i++) {
-            (*fill_func)(i, board_height);
+            (*fill_func)(i, board_height, CELL_SIZE);
         }
         for (int i = 0; i < board_height; i++) {
-            (*fill_func)(board_width, i);
+            (*fill_func)(board_width, i, CELL_SIZE);
         }
 
 
