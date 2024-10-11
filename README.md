@@ -9,6 +9,10 @@ Add subdirectories for Linux, Mac, Windows w/ common library
 
 Add "delete mode"
 
+Add blank start command line option
+
+Add display for paused vs add mode
+
 ## Linux:
 Run `make` to build.
 
