@@ -15,6 +15,7 @@ Description: This program reads a Brain's Brain board state and generates some n
 #include <stdio.h>
 #include <unistd.h>
 
+#include "brians_brain.h"
 
 int count_live_neighbors(int* pattern, int width, int height, int cell_index) {
     int live_neighbors_count = 0;
@@ -54,11 +55,11 @@ int* generate_next_pattern(int* pattern, int board_width,int board_height){
             int live_neighbors = count_live_neighbors(pattern, board_width, board_height, cell_index);
             int cell_value = pattern[cell_index];
 
-            if (cell_value == 0 && live_neighbors == 2) {
+            if (cell_value == DEAD && live_neighbors == 2) {
                 next_pattern[cell_index] = 2;
-            } else if (cell_value == 1) {
+            } else if (cell_value == DYING) {
                 next_pattern[cell_index] = 0;
-            } else if (cell_value == 2) {
+            } else if (cell_value == ALIVE) {
                 next_pattern[cell_index] = 1;
             } else {
                 next_pattern[cell_index] = cell_value;
@@ -89,11 +90,11 @@ void print_board(int* pattern, int width, int height) {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int cell_value = pattern[y * width + x];
-            if (cell_value == 0) {
+            if (cell_value == DEAD) {
                 printf("-");
-            } else if (cell_value == 1) {
+            } else if (cell_value == DYING) {
                 printf("*");
-            } else if (cell_value == 2) {
+            } else if (cell_value == ALIVE) {
                 printf("0");
             }
         }
@@ -125,25 +126,26 @@ void add_life(int* pattern, int width, int height){
     }
 }
 
-int main(){
-    int board_width = 100;
-    int board_height = 30;
+// Same as game of life, uncomment if you want to run this as a standalone program
+// int main(){
+//     int board_width = 100;
+//     int board_height = 30;
 
-    int generations = 1000;
+//     int generations = 1000;
 
-    int* current_pattern = generate_random_pattern(board_width, board_height);
+//     int* current_pattern = generate_random_pattern(board_width, board_height);
     
-    for  (int i = 0; i < generations; i++){
-        system("clear");
-        printf("\n");
-        print_board(current_pattern, board_width, board_height);
-        current_pattern = generate_next_pattern(current_pattern, board_width, board_height);
-        float life = measure_life(current_pattern, board_width, board_height);
-        printf("Life: %f", life);
-        if (life < 0.01){
-            add_life(current_pattern, board_width, board_height);
-        }
-        usleep(250000);
-    }
-    return 0;
-}
+//     for  (int i = 0; i < generations; i++){
+//         system("clear");
+//         printf("\n");
+//         print_board(current_pattern, board_width, board_height);
+//         current_pattern = generate_next_pattern(current_pattern, board_width, board_height);
+//         float life = measure_life(current_pattern, board_width, board_height);
+//         printf("Life: %f", life);
+//         if (life < 0.01){
+//             add_life(current_pattern, board_width, board_height);
+//         }
+//         usleep(250000);
+//     }
+//     return 0;
+// }
