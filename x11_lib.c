@@ -16,169 +16,22 @@ Will basically have some X11 helpers that will be used in the main file
 #define ATOM(a) XInternAtom(display, #a, False)
 
 // Globals for display information
-Display *display = NULL;
-int display_width;
-int display_height;
-int screen;
+static Display *display = NULL;
+static Window window;
+static int screen;
 
 // Graphics context for drawing
-GC gc;
+static GC gc;
 
-// Window struct to hold all of our window needs
-struct window {
-  Window root, window, desktop;
-  Drawable drawable;
-  Visual *visual;
-  Colormap colourmap;
-
-  uint width;
-  uint height;
-  int x;
-  int y;
-} window;
-
-static pid_t pid = 0;
-
-static char **childArgv = 0;
-static int nChildArgv = 0;
-
-static void init_x11() {
-    /* inits an x11 display, called by window_setup() */
-    display = XOpenDisplay(NULL);
-    if (!display) {
-        fprintf(stderr, NAME ": Error: couldn't open display\n");
-        return;
-    }
-    screen = DefaultScreen(display);
-    display_width = DisplayWidth(display, screen);
-    display_height = DisplayHeight(display, screen);
-}
-
-static Window find_subwindow(Window win, int w, int h) {
-    /* Finds a subwindow. Called by find_desktop_window() */
-    uint i, j;
-    Window troot, parent, *children;
-    uint n;
-
-    /* search subwindows with same size as display or work area */
-
-    for (i = 0; i < 10; i++) {
-        XQueryTree(display, win, &troot, &parent, &children, &n);
-
-        for (j = 0; j < n; j++) {
-            XWindowAttributes attrs;
-
-            if (XGetWindowAttributes(display, children[j], &attrs)) {
-                /* Window must be mapped and same size as display or
-                * work space */
-                if (attrs.map_state != 0 &&
-                    ((attrs.width == display_width && attrs.height == display_height) ||
-                    (attrs.width == w && attrs.height == h))) {
-                    win = children[j];
-                    break;
-                }
-            }
-        }
-
-        XFree(children);
-        if (j == n) {
-            break;
-        }
-    }
-
-    return win;
-}
-
-static Window find_desktop_window(Window *p_root, Window *p_desktop) {
-    /* Finds the user's desktop window. Called by window_setup() */
-    Atom type;
-    int format, i;
-    ulong nitems, bytes;
-    uint n;
-    Window root = RootWindow(display, screen);
-    Window win = root;
-    Window troot, parent, *children;
-    uchar *buf = NULL;
-
-    if (!p_root || !p_desktop) {
-        return 0;
-    }
-
-    /* some window managers set __SWM_VROOT to some child of root window */
-
-    XQueryTree(display, root, &troot, &parent, &children, &n);
-    for (i = 0; i < (int)n; i++) {
-        if (XGetWindowProperty(display, children[i], ATOM(__SWM_VROOT), 0, 1, False,
-                            XA_WINDOW, &type, &format, &nitems, &bytes,
-                            &buf) == Success &&
-            type == XA_WINDOW) {
-            win = *(Window *)buf;
-            XFree(buf);
-            XFree(children);
-            fflush(stderr);
-            *p_root = win;
-            *p_desktop = win;
-            return win;
-        }
-
-        if (buf) {
-            XFree(buf);
-            buf = 0;
-        }
-    }
-    XFree(children);
-
-    /* get subwindows from root */
-    win = find_subwindow(root, -1, -1);
-
-    display_width = DisplayWidth(display, screen);
-    display_height = DisplayHeight(display, screen);
-
-    win = find_subwindow(win, display_width, display_height);
-
-    if (buf) {
-        XFree(buf);
-        buf = 0;
-    }
-
-    fflush(stderr);
-
-    *p_root = root;
-    *p_desktop = win;
-
-    return win;
-}
-
-void color(ushort r, ushort g, ushort b) {
-    /* Sets foreground paint color using three shorts */
-    XSetForeground(display, gc, r << 16 | g << 8 | b);
-}
-
-void color_rgb(RGB rgb) {
-    /* Sets foreground paint color using RGB struct */
-    XSetForeground(display, gc, rgb.r << 16 | rgb.g << 8 | rgb.b);
-}
-
+/* Functions */
 void fill_cell(int x, int y, int size) {
     /* Fills a cell at x, y with the current color */
-    XFillRectangle(display, window.window, gc, x*size, y*size, size, size);
+    XFillRectangle(display, window, gc, x*size, y*size, size, size);
 }
 
 void fill_circle(int x, int y, int size) {
     /* Fills a circle at x, y with the current color */
-    XFillArc(display, window.window, gc, x*size, y*size, size, size, 0, 360*64);
-}
-
-void fill_background() {
-    /* Fills the background with the current color */
-    XFillRectangle(display, window.window, gc, 0, 0, window.width, window.height);
-}
-
-void x11_cleanup() {
-    /* Cleans everything up, be sure to call when done */
-    XFreeGC(display, gc);
-    XDestroyWindow(display, window.window);
-    XCloseDisplay(display);
+    XFillArc(display, window, gc, x*size, y*size, size, size, 0, 360*64);
 }
 
 int screen_width() {
@@ -191,97 +44,162 @@ int screen_height() {
     return DisplayHeight(display, screen);
 }
 
-Display* window_setup() {
+int rgb_to_int(RGB rgb) {
+    /* Converts an RGB struct to an int for X11 compatibility */
+    return rgb.r << 16 | rgb.g << 8 | rgb.b;
+}
+
+void color(RGB rgb) {
+    /* Sets foreground paint color using RGB struct */
+    XSetForeground(display, gc, rgb_to_int(rgb));
+}
+
+void raise_window() {
+    /* Raises the window to the top */
+    XRaiseWindow(display, window);
+}
+
+void lower_window() {
+    /* Lowers the window to the bottom */
+    XLowerWindow(display, window);
+}
+
+void focus_window() {
+    /* Focuses the window */
+    XSetInputFocus(display, window, RevertToParent, CurrentTime);
+}
+
+void unfocus_window() {
+    /* Unfocuses the window */
+    XSetInputFocus(display, PointerRoot, RevertToParent, CurrentTime);
+}
+
+void flush() {
+    /* Flushes the display */
+    XFlush(display);
+}
+
+static void disable_input(Window in_win) {
+    /* Disables the input region of a specific window */
+    Region region = XCreateRegion();
+    XShapeCombineRegion(display, in_win, ShapeInput, 0, 0, region, ShapeSet);
+    XDestroyRegion(region);
+}
+
+void x11_cleanup() {
+    /* Cleans everything up, be sure to call when done */
+    XFreeGC(display, gc);
+    XDestroyWindow(display, window);
+    XCloseDisplay(display);
+}
+
+POS get_mouse_pos() {
+    /* Returns true if the left mouse button is pressed */
+    Window child; // child window the pointer is in, if any
+    Window root; // root window the pointer is in
+    int root_x, root_y; // pointer position relative to the root window
+    int win_x, win_y; // pointer position relative to the window
+    unsigned int button_state; // state of the modifier keys and the buttons as a bitmask
+    
+    // Query the pointer state
+    XQueryPointer(display, window, &root, &child, &root_x, &root_y, &win_x, &win_y, &button_state);
+    
+    // Return the position
+    POS pos = {win_x, win_y};
+    return pos;
+}
+
+bool is_lmb_pressed() {
+    /* Returns true if the left mouse button is pressed */
+    Window child; // child window the pointer is in, if any
+    Window root; // root window the pointer is in
+    int root_x, root_y; // pointer position relative to the root window
+    int win_x, win_y; // pointer position relative to the window
+    unsigned int button_state; // state of the modifier keys and the buttons as a bitmask
+    
+    // Query the pointer state
+    XQueryPointer(display, window, &root, &child, &root_x, &root_y, &win_x, &win_y, &button_state);
+    
+    // Check if lmb is being pressed
+    if (button_state & Button1Mask) {
+        return true;
+    }
+    return false;
+}
+
+bool check_for_keybind(char* key) {
+    KeyCode keycode = XKeysymToKeycode(display, XStringToKeysym(key));
+    /* Checks for the keybind and returns true if one is found */
+    XEvent event;
+    if (XCheckMaskEvent(display, KeyPressMask, &event)) {
+        if (event.xkey.keycode == keycode) {
+            return true;
+        } else {
+            XPutBackEvent(display, &event);
+        }
+    }
+    return false;
+}
+
+bool wait_for_keybind(char* key) {
+    /* Waits for the keybind and returns true if one is found */
+    KeyCode keycode = XKeysymToKeycode(display, XStringToKeysym(key));
+    XEvent event;
+    while (true) {
+        XNextEvent(display, &event);
+        if (event.xkey.keycode == keycode && event.type == KeyPress) {
+            return true;
+        }
+    }
+}
+
+void setup_keybind(char* key) {
+    /* Sets up the keybind for the window */
+    KeyCode keycode = XKeysymToKeycode(display, XStringToKeysym(key));
+    XGrabKey(display, keycode, ControlMask | Mod1Mask, DefaultRootWindow(display), True, GrabModeAsync, GrabModeAsync);
+}
+
+Window* get_window() {
+    /* Returns the window */
+    return &window;
+}
+
+Display* window_setup(RGB bg_color) {
     /* Main helper function to run here. Will do all the window setup
     Returns up a pointer to the display if you want it */
-    /* ALL OF THIS TO SET UP THE WINDOW! */
-    // screen #
-    int screen = 0;
+    display = XOpenDisplay(NULL);
+    screen = DefaultScreen(display);
+    Window root = DefaultRootWindow(display);
 
-    // start up x11 libs, standard stuff
-    init_x11();
-    if (!display) {
-        return NULL;
-    }
+    // Create the window
+    window = XCreateSimpleWindow(display, root, 0, 0, 
+                                 screen_width(), screen_height(), 
+                                 1, rgb_to_int(bg_color), rgb_to_int(bg_color));
 
-    // define the pixel depth we want (0) and some flags
-    int depth = 0, flags = CWOverrideRedirect | CWBackingStore;
-    // no clue what this is
-    Visual *visual = NULL;
+    // Set the window type to desktop
+    Atom window_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
+    Atom desktop_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
+    
+    XChangeProperty(display, window, window_type, XA_ATOM, 32, PropModeReplace, (uchar*) &desktop_type, 1);
 
-    // FIND our DESKTOP WINDOW! very important
-    if (!find_desktop_window(&window.root, &window.desktop)) {
-        fprintf(stderr, NAME ": Error: couldn't find desktop window\n");
-        return NULL;
-    }
+    // Show the window
+    XMapWindow(display, window);
 
-    // Set some attrs, I have no idea what any of these do :D
-    XSetWindowAttributes attrs = {ParentRelative,
-                                  0L,
-                                  0,
-                                  0L,
-                                  0,
-                                  0,
-                                  Always,
-                                  0L,
-                                  0L,
-                                  False,
-                                  0xFFFFFF, // flags related to events in X.h to listen for. For now, do all 24!
-                                  0L,
-                                  False,
-                                  0,
-                                  0};
+    // Initialize the graphics context
+    gc = XCreateGC(display, window, 0, 0);
 
-    // hints, again not sure. X11 magic, probably. WM = window manager
-    XWMHints wmHint;
+    // Lower the window below everything and disable input
+    lower_window();
 
-    // Set some variables in the window struct for reference later
-    window.x = 0;
-    window.y = 0;
-    window.width = DisplayWidth(display, screen);
-    window.height = DisplayHeight(display, screen);
+    // Listen for certain events
+    XSelectInput(display, window, KeyPressMask | ButtonPressMask);
 
-    // Create the WINDOW!
-    window.window = XCreateWindow(display, window.root, window.x, window.y,
-                                  window.width, window.height, 0, depth,
-                                  InputOutput, visual, flags, &attrs);
-
-    // set some window manager hint flags
-    wmHint.flags = InputHint | StateHint;
-    wmHint.initial_state = NormalState;
-
-    // Set the properties with the hints.
-        // Used to take in argv and argc, but we don't need this in our specific use case
-                                                       /*argv  argc*/
-    XSetWMProperties(display, window.window, NULL, NULL, NULL, 0   , NULL, &wmHint, NULL);
-
-    // create some Atom objects I guess, I dunno what they do
-    Atom xa = ATOM(_NET_WM_WINDOW_TYPE);
-    Atom prop = ATOM(_NET_WM_WINDOW_TYPE_DESKTOP);
-
-    // Absolute magic
-    XChangeProperty(display, window.window, xa, XA_ATOM, 32, PropModeReplace, (uchar*)&prop, 1);
-
-    // No input (click on desktop, you see icons) code
-        // unfortunately, this prevents us from interacting with the window
-    Region region = XCreateRegion();
-    if (region) {
-        XShapeCombineRegion(display, window.window, ShapeInput, 0, 0, region, ShapeSet);
-        XDestroyRegion(region);
-    }
-
-    // Make the window visible!!
-    XMapWindow(display, window.window);
-    XSync(display, False); // Ensure the mapping command reaches the X server
-
-    // Select input events to listen for
-    XSelectInput(display, window.window, 0xFFFFFF);
-
-    // Create a graphics context for drawing
-    gc = XCreateGC(display, window.window, 0, NULL);
+    // Setup the mouse input for the window
+    XGrabPointer(display, window, True, 
+                 ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+                 GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
 
     return display;
-    /* WINDOW FINALLY SET UP */
 }
 
 #endif // X11_LIB
