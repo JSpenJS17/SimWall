@@ -7,7 +7,7 @@ Remove old Python demos, clean up repo
 
 Add subdirectories for Linux, Mac, Windows w/ common library
 
-Add "permanent add mode" where you add no matter if you're in add mode or not
+Add "delete mode"
 
 ## Linux:
 Run `make` to build.

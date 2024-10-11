@@ -41,7 +41,7 @@ void usage() {
     fprintf(stderr, "  -bg 000000: Set the background (dead cell) color\n");
     fprintf(stderr, "  -fg FFFFFF: Set the foreground (alive cell) color\n");
     fprintf(stderr, "  -fps 10.0: Set the framerate (can be decimal)\n");
-    fprintf(stderr, "  -c: Draw a circle instead of a square\n");
+    fprintf(stderr, "  -c: Draw circles instead of a squares\n");
     fprintf(stderr, "  -s 25: Set the size of the cells\n");
     fprintf(stderr, "  -nk: Disable keybinds\n");
     fprintf(stderr, "Example: simwall -bg FF00FF -fg 00FF00 -fps 10.0\n");
