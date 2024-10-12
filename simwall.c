@@ -41,13 +41,13 @@ void usage() {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -h, --help: Show this help message\n");
     fprintf(stderr, "  -D, -d, --daemonize: Daemonize the process\n");
-    fprintf(stderr, "  -dead 000000: Set the background (dead cell) color\n");
-    fprintf(stderr, "  -alive FFFFFF: Set the foreground (alive cell) color\n");
+    fprintf(stderr, "  -dead 000000: Set the dead cell color\n");
+    fprintf(stderr, "  -alive FFFFFF: Set the alive cell color\n");
     fprintf(stderr, "  -dying 808080: Set the dying cell color (BB only)\n");
-    fprintf(stderr, "  -fps 10.0: Set the framerate (can be decimal)\n");
-    fprintf(stderr, "  -bb: Run Brian's Brain instead of Game of Life\n");
+    fprintf(stderr, "  -fps 10.0: Set the framerate\n");
+    fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n");
     fprintf(stderr, "  -c: Draw circles instead of a squares\n");
-    fprintf(stderr, "  -s 25: Set the size of the cells\n");
+    fprintf(stderr, "  -s 25: Set the cell size in pixels\n");
     fprintf(stderr, "  -nk: Disable keybinds\n");
     fprintf(stderr, "  -nr: No restocking if board is too empty\n");
     fprintf(stderr, "  -clear: Start with a clear board. Includes -nr\n");

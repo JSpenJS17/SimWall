@@ -1,4 +1,4 @@
-Implements a Conway's Game of Life wallpaper.
+Implements a Conway's Game of Life and Brian's Brain as a desktop wallpaper.
 
 Display made with X11 libraries in C.
 
@@ -8,8 +8,6 @@ Remove old Python demos, clean up repo
 Add subdirectories for Linux, Mac, Windows w/ common library
 
 Add "delete mode"
-
-Add blank start command line option
 
 Add display for paused vs add mode
 
