@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
     void (*add_random)(int*, int, int, int) = args->flags & BB ? bb_add_life : gol_add_life;
 
     // set the restock threshold based on the flags
-    float restock_thresh = args->flags & BB ? .99 : .95;
+    float restock_thresh = args->flags & BB ? 1.0 : .95;
 
     // GAME TIME!!!    
     int board_height = screen_height() / CELL_SIZE;
