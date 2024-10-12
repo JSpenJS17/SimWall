@@ -248,6 +248,9 @@ int main(int argc, char **argv) {
     int* (*gen_random)(int, int, int) = args->flags & BB ? bb_gen_random : gol_gen_random;
     void (*add_random)(int*, int, int, int) = args->flags & BB ? bb_add_life : gol_add_life;
 
+    // set the restock threshold based on the flags
+    float restock_thresh = args->flags & BB ? .99 : .95;
+
     // GAME TIME!!!    
     int board_height = screen_height() / CELL_SIZE;
     int board_width = screen_width() / CELL_SIZE;
@@ -322,8 +325,8 @@ int main(int argc, char **argv) {
         current_pattern = next_pattern;
 
         // check if we need to add more cells
-        if (dead/total >= .95 && !(args->flags & NO_RESTOCK)) {
-            // if 95% of the board is dead, add more cells
+        if (dead/total >= restock_thresh && !(args->flags & NO_RESTOCK)) {
+            // if 95% (99% in bb) of the board is dead, add more cells
             add_random(current_pattern, board_width, board_height, 10);
         }
         // reset dead count
