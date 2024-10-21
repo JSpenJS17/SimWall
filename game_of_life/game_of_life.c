@@ -11,7 +11,7 @@ Description: This program reads a GoL board state and generates some number of f
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <unistd.h>
+#include <windows.h>
 #include <string.h>
 #include <time.h>
 #include "game_of_life.h"

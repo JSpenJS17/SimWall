@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "windows.h": "c",
+        "game_of_life.h": "c",
+        "brians_brain.h": "c"
+    }
+}

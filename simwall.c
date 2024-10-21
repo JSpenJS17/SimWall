@@ -8,11 +8,11 @@ Heavily abstracted away into not-so-pretty libraries
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <unistd.h>
+#include <windows.h>
 #include <string.h>
 #include <time.h>
 
-#include "x11_lib.h"
+#include "windows_lib.h"
 #include "game_of_life/game_of_life.h"
 #include "brians_brain/brians_brain.h"
 
@@ -27,11 +27,13 @@ int CELL_SIZE = 25;
 
 bool add_mode = false;
 
+
+
 /* General purpose cmd-line args 
 Can add more later if needed */
 struct Args {
     RGB alive_color, dead_color, dying_color;
-    uchar flags;
+    unsigned char flags;
     float framerate;
 };
 typedef struct Args Args;
@@ -198,7 +200,7 @@ void handle_keybinds() {
 
     // Quit if Ctrl-Alt-Q is pressed
     if (check_for_keybind("Q")) {
-        x11_cleanup();
+        cleanup();
         exit(0);
     }
 
@@ -213,32 +215,24 @@ void handle_keybinds() {
     }
 }
 
-/* Could optimize this to only update when the user is looking at it,
-but I'm just not sure how to detect that yet. Looks like in-built event
-handling in X11 but I've been trying for an hour to make it work and
-I cannot. Maybe the answer is to look at the root window and check 
-its events? Cause the root window is overlayed on the sim */
+
 int main(int argc, char **argv) {
     // parse arguments
     Args* args = parse_args(argc, argv);
 
     // daemonize if they asked for it
     if (args->flags & DAEMONIZE) {
-        int pid = fork();
-        if (pid != 0) {
-            return 0;
+        STARTUPINFO si = {sizeof(STARTUPINFO)};
+        PROCESS_INFORMATION pi;
+
+        if (!CreateProcess(NULL, "simwall.exe", NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+            fprintf(stderr, "Failed to daemonize\n");
+            exit(1);
         }
     }
 
     // Initialize the window
-    Display* display = window_setup(args->dead_color);
-    
-    // Set up add, pause, and quit keybinds
-    if (args->flags & KEYBINDS) {
-        setup_keybind("A");
-        setup_keybind("P");
-        setup_keybind("Q");
-    }
+    HWND hwnd = window_setup(args->dead_color);
 
     // set the fill function based on the flags
     void (*fill_func)(int, int, int) = args->flags & CIRCLE ? fill_circle : fill_cell;
@@ -275,111 +269,63 @@ int main(int argc, char **argv) {
     color(args->dead_color);
 
     // Main loop
-    while (1) {
-        // get start time
-        time_t start_time = time(NULL);
+DWORD start_time = GetTickCount();
+int frame_duration = 1000 / args->framerate;  // Frame duration based on the framerate
 
-        /* DRAWING PORTION */
-        // loop through our board and draw it
-        for (int i = 0; i < board_width * board_height; i++) {
-            // check current cell's alive state
-            if (current_pattern[i] == ALIVE && cur_color != alive_color_int) {
-                // if alive and we're not already on the fg color, switch to it
-                cur_color = alive_color_int;
-                color(args->alive_color);
-            }
-            else if (current_pattern[i] == DYING && cur_color != rgb_to_int(args->dying_color)) {
-                // if dying and we're not already on the dying color, switch to it
-                cur_color = rgb_to_int(args->dying_color);
-                color(args->dying_color);
-            }
-            else if (current_pattern[i] == DEAD) {
-                // if dead, increment dead count
-                dead++;
-                if (cur_color != dead_color_int) {
-                    // if we're not already on the bg color, switch to it
-                    cur_color = dead_color_int;
-                    color(args->dead_color);
-                }
-            }
+while (1) {
+    DWORD frame_start = GetTickCount();  // Start of the frame
 
-            // fill the cell with whatever color we land on
-            (*fill_func)(i % board_width, i / board_width, CELL_SIZE);
-        }
-
-        color(args->dead_color);
-        cur_color = dead_color_int;
-        // fill one more row and col with bg to make sure we fill the whole screen
-        for (int i = 0; i < board_width; i++) {
-            (*fill_func)(i, board_height, CELL_SIZE);
-        }
-        for (int i = 0; i < board_height; i++) {
-            (*fill_func)(board_width, i, CELL_SIZE);
-        }
-
-
-        /* GENERATION PORTION */
-        // Now generate the next pattern
-        int* next_pattern = (*gen_next)(current_pattern, board_width, board_height);
-        free(current_pattern);
-        current_pattern = next_pattern;
-
-        // check if we need to add more cells
-        if (dead/total >= restock_thresh && !(args->flags & NO_RESTOCK)) {
-            // if 95% (99% in bb) of the board is dead, add more cells
-            add_random(current_pattern, board_width, board_height, 10);
-        }
-        // reset dead count
-        dead = 0;
-
-        /* EXTRA FEATURES */
-        // keybind processing
-        if (args->flags & KEYBINDS) {
-            handle_keybinds();
-        }
-
-        // Add cells if in add mode
-        if (add_mode) {
-            // set the color to the cell color
-            color(args->alive_color);
+    /* DRAWING PORTION */
+    for (int i = 0; i < board_width * board_height; i++) {
+        // Check and set the current color based on cell state
+        if (current_pattern[i] == ALIVE && cur_color != alive_color_int) {
             cur_color = alive_color_int;
-
-            // loop until we're out of add mode (effectively pause)
-                // this is to prevent placed cells from instantly dying
-            while (add_mode) {
-                // if the left mouse button is being pressed
-                if (is_lmb_pressed()) {
-                    // get the mouse position
-                    POS mouse_pos = get_mouse_pos();
-                    int x = mouse_pos.x / CELL_SIZE;
-                    int y = mouse_pos.y / CELL_SIZE;
-
-                    // fill the cell
-                    current_pattern[y * board_width + x] = ALIVE;
-                    fill_func(x, y, CELL_SIZE);
-                }
-
-                // handle keybinds to allow escape from here
-                handle_keybinds();
-                // sleep a while
-                usleep(10000);
-            }
+            color(args->alive_color);
+        } else if (current_pattern[i] == DYING && cur_color != rgb_to_int(args->dying_color)) {
+            cur_color = rgb_to_int(args->dying_color);
+            color(args->dying_color);
+        } else if (current_pattern[i] == DEAD && cur_color != dead_color_int) {
+            cur_color = dead_color_int;
+            color(args->dead_color);
         }
 
-
-        // sleep for the remainder of the frame time, which is usually 100% of it
-        time_t end_time = time(NULL);
-        int sleep_time = 1000000 / args->framerate - (end_time - start_time);
-        if (sleep_time > 0) {
-            usleep(sleep_time);
-        }
+        // Fill the cell
+        (*fill_func)(i % board_width, i / board_width, CELL_SIZE);
     }
 
-    // cleanup
-    free(args);
+    // Fill the border cells (ensure full screen coverage)
+    color(args->dead_color);
+    cur_color = dead_color_int;
+    for (int i = 0; i < board_width; i++) {
+        (*fill_func)(i, board_height, CELL_SIZE);
+    }
+    for (int i = 0; i < board_height; i++) {
+        (*fill_func)(board_width, i, CELL_SIZE);
+    }
+
+    /* GENERATION PORTION */
+    int* next_pattern = (*gen_next)(current_pattern, board_width, board_height);
     free(current_pattern);
-    x11_cleanup();
-    return 0;
+    current_pattern = next_pattern;
+
+    if (dead / total >= restock_thresh && !(args->flags & NO_RESTOCK)) {
+        add_random(current_pattern, board_width, board_height, 10);
+    }
+    dead = 0;
+
+
+    // Frame timing logic
+    DWORD frame_end = GetTickCount();
+    DWORD elapsed_time = frame_end - frame_start;
+    if (elapsed_time < frame_duration) {
+        Sleep(frame_duration - elapsed_time);
+    }
+}
+
+free(args);
+free(current_pattern);
+cleanup();
+return 0;
 }
 
 #endif // SIMWALL_C

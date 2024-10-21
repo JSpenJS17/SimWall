@@ -13,7 +13,7 @@ Description: This program reads a Brain's Brain board state and generates some n
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <windows.h>
 
 #include "brians_brain.h"
 
