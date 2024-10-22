@@ -35,7 +35,7 @@ void fill_circle(int x, int y, int size) {
     Ellipse(hdc, x*size, y*size, (x+1)*size, (y+1)*size);
     }
 
-    // Get the screen width and height
+// Get the screen width and height
 int screen_width(){
     return GetSystemMetrics(SM_CXSCREEN);
 }
@@ -64,8 +64,13 @@ void color(RGB rgb) {
 
 }
 
-//From https://stackoverflow.com/questions/5404277/c-win32-how-to-get-the-window-handle-of-the-window-that-has-focus
-// Message to `Progman` to spawn a `WorkerW`
+/*From https://stackoverflow.com/questions/5404277/c-win32-how-to-get-the-window-handle-of-the-window-that-has-focus
+This is the process to put a window behind the desktop icons
+There exists a window called WorkerW that is the parent of the desktop icons, so we can attach our window to that window
+But there are multiple WorkerW windows, so we need to find the correct one
+So we look for the WorkerW window that is the parent of the SHELLDLL_DefView window, which is the window that contains the desktop icons
+*/
+
 // Declare the global variable for WorkerW
 HWND hWorkerW = NULL;
 
@@ -153,7 +158,8 @@ HWND get_window() {
     return hwnd;
 }
 
-
+//Custom Windows Process to handle user input
+//Will need to implment later
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
         case WM_PAINT:
@@ -168,7 +174,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 
-
+// Sets up a window with the specified background color
 HWND window_setup(RGB bg_color) {
     WNDCLASS wc = {0};
     wc.lpszClassName = NAME;
@@ -190,21 +196,22 @@ HWND window_setup(RGB bg_color) {
         NULL, NULL, wc.hInstance, NULL
     );
 
+    // Check if the window was created successfully
     if (hwnd == NULL) {
         printf(NULL, "Failed to create window", "Error", MB_ICONERROR);
         exit(1);
     }
 
-
+    // Get the WorkerW window
     HWND hWorkerW = GetDesktopWorkerW();
 
-    // Step 3: Attach your window to the WorkerW window using SetParent
+    // Attach  window to the WorkerW window using SetParent
     SetParent(hwnd, hWorkerW);
 
     // Show the window and make it the bottommost window
-      ShowWindow(hwnd, SW_SHOW);
+    ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
-    SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), SWP_NOACTIVATE | SWP_NOMOVE);
 
     // Initialize the graphics context
     hdc = GetDC(hwnd);

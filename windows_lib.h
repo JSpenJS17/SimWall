@@ -52,6 +52,7 @@ void focus_window();
 void unfocus_window();
 POINT get_mouse_pos();
 bool is_lmb_pressed();
+HWND GetDesktopWorker();
 
 
 #endif
