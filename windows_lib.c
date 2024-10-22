@@ -1,11 +1,11 @@
-/* x11_lib.c 
-Library file for the game of life displaying to X11
-Will basically have some X11 helpers that will be used in the main file
+/* windows_lib.c 
+Library file for the game of life displaying
+Will basically have some Windows API helpers that will be used in the main file
 */
 #ifndef WINDOWS_LIB
 #define WINDOWS_LIB
 
-#include "windows_lib.h" // our windows_lib.h file
+#include "windows_lib.h"
 
 // Helpful macros and globals
 #define OPAQUE 0xffffffff
@@ -64,74 +64,30 @@ void color(RGB rgb) {
 
 }
 
-void raise_window() {
-    /* Raises the window to the top */
-    SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-    }
-
-void lower_window() {
-    /* Lowers the window to the bottom */
-    SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-    }
-
-void focus_window() {
-    /* Focuses the window */
-    SetForegroundWindow(hwnd);
-}
-
-void unfocus_window() {
-    /* Unfocuses the window */
-    SetForegroundWindow(GetDesktopWindow());
-}
-
-
-static void disable_input(HWND in_hwnd) {
-    /* Disables the input region of a specific window */
-    EnableWindow(in_hwnd, FALSE);
-}
-
 //From https://stackoverflow.com/questions/5404277/c-win32-how-to-get-the-window-handle-of-the-window-that-has-focus
 // Message to `Progman` to spawn a `WorkerW`
-
-
-const int WM_SPAWN_WORKER = 0x052C;
-
-// Global variable to store the WorkerW handle
+// Declare the global variable for WorkerW
 HWND hWorkerW = NULL;
 
-
-//From ChatGPT
-// Callback function for EnumWindows
-BOOL CALLBACK EnumWindowsProc(HWND topHandle, LPARAM lParam) {
-    HWND shellDllDefView = FindWindowEx(topHandle, NULL, "SHELLDLL_DefView", NULL);
-    if (shellDllDefView != NULL) {
-        // Assign the WorkerW handle to the global variable
-        hWorkerW = FindWindowEx(NULL, topHandle, "WorkerW", NULL);
-        return FALSE; // Stop enumerating windows
+// Callback function for EnumWindows in C
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+    HWND hShellView = FindWindowEx(hwnd, NULL, "SHELLDLL_DefView", NULL);
+    if (hShellView != NULL) {
+        hWorkerW = FindWindowEx(NULL, hwnd, "WorkerW", NULL);
+        return FALSE; 
     }
-    return TRUE; // Continue enumerating
+    return TRUE;
 }
 
-void Attach(HWND win) {
-    // Find `Progman`
+HWND GetDesktopWorkerW() {
+    // Send a message to Progman to spawn WorkerW
     HWND hProgman = FindWindow("Progman", NULL);
+    SendMessageTimeout(hProgman, 0x052C, NULL, NULL, SMTO_NORMAL, 1000, NULL);
 
-    // Instruct program to create a `WorkerW` between wallpaper and icons
-    SendMessageTimeout(
-        hProgman,
-        WM_SPAWN_WORKER,
-        (WPARAM)NULL,
-        (LPARAM)NULL,
-        SMTO_NORMAL,
-        1000,
-        NULL
-    );
-
-    // Find the newly created `WorkerW`
+    // Enumerate through windows to find the WorkerW
     EnumWindows(EnumWindowsProc, 0);
 
-    // Set our window as the child of the newly created `WorkerW`
-    SetParent(win, hWorkerW);
+    return hWorkerW;
 }
 
 void Detach(HWND win) {
@@ -197,11 +153,27 @@ HWND get_window() {
     return hwnd;
 }
 
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+        case WM_PAINT:
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+            EndPaint(hwnd, &ps);
+            break;
+        default:
+            return DefWindowProc(hwnd, msg, wParam, lParam);
+    }
+    return 0;
+}
+
+
+
 HWND window_setup(RGB bg_color) {
     WNDCLASS wc = {0};
     wc.lpszClassName = NAME;
     wc.hInstance = GetModuleHandle(NULL);
-    wc.lpfnWndProc = DefWindowProc; 
+    wc.lpfnWndProc = WndProc; 
     wc.hbrBackground = CreateSolidBrush(RGB(bg_color.r, bg_color.g, bg_color.b));
 
     // Register the window class
@@ -212,27 +184,27 @@ HWND window_setup(RGB bg_color) {
 
     // Create the window
     hwnd = CreateWindowEx(
-        WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT, // Extended styles
-        NAME, "SimWall", WS_POPUP, // WS_POPUP to create a borderless window
-        0, 0, screen_width(), screen_height(),
+        WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, // Extended styles
+        NAME, "SimWall", WS_POPUP | WS_VISIBLE, // WS_POPUP for a borderless window
+        0, 0, screen_width(), screen_height(), // Fullscreen dimensions
         NULL, NULL, wc.hInstance, NULL
     );
 
     if (hwnd == NULL) {
-        MessageBox(NULL, "Failed to create window", "Error", MB_ICONERROR);
+        printf(NULL, "Failed to create window", "Error", MB_ICONERROR);
         exit(1);
     }
 
-    // Set window to be a layered window and transparent if desired
-    SetLayeredWindowAttributes(hwnd, RGB(0, 0, 0), 255, LWA_ALPHA);
+
+    HWND hWorkerW = GetDesktopWorkerW();
+
+    // Step 3: Attach your window to the WorkerW window using SetParent
+    SetParent(hwnd, hWorkerW);
 
     // Show the window and make it the bottommost window
-    ShowWindow(hwnd, SW_SHOW);
+      ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
     SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-
-
-    // Attach(hwnd);
 
     // Initialize the graphics context
     hdc = GetDC(hwnd);
