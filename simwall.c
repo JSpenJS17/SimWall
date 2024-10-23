@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
     void (*add_random)(int*, int, int, int) = args->flags & BB ? bb_add_life : gol_add_life;
 
     // set the restock threshold based on the flags
-    float restock_thresh = args->flags & BB ? 1.0 : .95;
+    float restock_thresh = args->flags & BB ? .99 : .95;
 
     // GAME TIME!!!    
     int board_height = screen_height() / CELL_SIZE;
@@ -284,9 +284,12 @@ while (1) {
         } else if (current_pattern[i] == DYING && cur_color != rgb_to_int(args->dying_color)) {
             cur_color = rgb_to_int(args->dying_color);
             color(args->dying_color);
-        } else if (current_pattern[i] == DEAD && cur_color != dead_color_int) {
-            cur_color = dead_color_int;
-            color(args->dead_color);
+        } else if (current_pattern[i] == DEAD) {
+            dead++;
+            if(cur_color != dead_color_int){
+                cur_color = dead_color_int;
+                color(args->dead_color);
+            }
         }
 
         // Fill the cell
@@ -307,6 +310,7 @@ while (1) {
     int* next_pattern = (*gen_next)(current_pattern, board_width, board_height);
     free(current_pattern);
     current_pattern = next_pattern;
+
 
     if (dead / total >= restock_thresh && !(args->flags & NO_RESTOCK)) {
         add_random(current_pattern, board_width, board_height, 10);
