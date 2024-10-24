@@ -37,11 +37,11 @@ void fill_circle(int x, int y, int size) {
 
 // Get the screen width and height
 int screen_width(){
-    return 1920;
+    return GetSystemMetrics(SM_CXSCREEN)*3/2;
 }
 
 int screen_height() {
-    return 1080;
+    return GetSystemMetrics(SM_CYSCREEN)*3/2;
 }
 
 int rgb_to_int(RGB rgb) {
