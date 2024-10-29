@@ -41,8 +41,8 @@ int bb_count_live_neighbors(int* pattern, int width, int height, int cell_index)
 }
 
 
-// Patterns should only contain 0s (dead), 1s(dying), and 2s (alive)
 int* bb_gen_next(int* pattern, int board_width,int board_height){
+    // Patterns should only contain 0s (dead), 1s(dying), and 2s (alive)
     int* next_pattern = (int*)malloc(board_width * board_height * sizeof(int));
     if (next_pattern == NULL) {
         perror("Failed to allocate memory for next pattern");
@@ -90,6 +90,7 @@ int* bb_gen_random(int width, int height, int percent_alive){
     return pattern;
 }
 
+
 void print_board(int* pattern, int width, int height) {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
@@ -106,6 +107,7 @@ void print_board(int* pattern, int width, int height) {
     }
 }
 
+
 float measure_life(int* pattern, int board_width, int board_height){
     int total_cells = board_width * board_height;
     int live_cells = 0;
@@ -118,6 +120,7 @@ float measure_life(int* pattern, int board_width, int board_height){
     float life = (float)live_cells / total_cells;
     return life;
 }
+
 
 void bb_add_life(int* pattern, int width, int height, int percent_alive){
     srand(time(NULL));

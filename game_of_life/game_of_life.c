@@ -174,6 +174,7 @@ void print_pattern(int* pattern, int width, int height) {
     printf("\n");
 }
 
+
 int* gol_gen_random(int width, int height, int percent_alive) {
     /* Generates a random board on the heap */
     int* pattern = (int*)malloc(width * height * sizeof(int));
@@ -194,6 +195,7 @@ int* gol_gen_random(int width, int height, int percent_alive) {
 
     return pattern;
 }
+
 
 void gol_add_life(int* pattern, int width, int height, int percent_alive) {
     // Airdrop some extra cells!!

@@ -172,6 +172,7 @@ void print_pattern(bool* pattern, int width, int height) {
     printf("\n");
 }
 
+
 void randomize_pattern(bool* pattern, int width, int height) {
     srand(time(NULL));
     for (int i = 0; i < width * height; i++) {
