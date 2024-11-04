@@ -1,0 +1,31 @@
+{
+  "name": "sim-wall",
+  "productName": "SimWall",
+  "version": "1.0.0",
+  "description": "A tool for setting your background to various simulations",
+  "main": "main.js",
+  "author": "Holden Vail",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "electron": "^33.0.2",
+    "electron-builder": "^25.1.8"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder build"
+  },
+  "build": {
+    "appId": "com.holdenvail.simwall",
+    "mac": {
+      "icon": "./assets/icon.icns",
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "icon": "./assets/icon.ico"
+    },
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    }
+  }
+}
