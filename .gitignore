@@ -1,1 +1,5 @@
 .vscode/*
+archive/*
+.DS_Store
+simwall
+electron/sim_wall/dist/*
