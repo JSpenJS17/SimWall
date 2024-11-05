@@ -7,9 +7,6 @@ Will basically have some Windows API helpers that will be used in the main file
 
 #include "windows_lib.h"
 
-// Helpful macros and globals
-#define OPAQUE 0xffffffff
-
 #define NAME "SimWall"
 #define VERSION "0.1"
 
@@ -22,6 +19,10 @@ static HDC hdc;
 // Graphics context for drawing
 static HPEN hPen;
 static HBRUSH hBrush;
+
+// Global variables for the program
+bool paused = false;
+bool add_mode = false;
 
 /* Functions */
 void fill_cell(int x, int y, int size) {
@@ -92,6 +93,7 @@ HWND GetDesktopWorkerW() {
     // Enumerate through windows to find the WorkerW
     EnumWindows(EnumWindowsProc, 0);
 
+
     return hWorkerW;
 }
 
@@ -105,9 +107,17 @@ void cleanup() {
     /* Cleans everything up, be sure to call when done */
     DeleteObject(hPen);
     DeleteObject(hBrush);
-    Detach(hwnd);
+
+    // Hide and destroy main window
+    ShowWindow(hwnd, SW_HIDE);
+    ShowWindow(hWorkerW, SW_HIDE);
     ReleaseDC(hwnd, hdc);
+    Detach(hwnd);
     DestroyWindow(hwnd);
+    
+    // Unregister the hotkeys
+    UnregisterHotKey(NULL, 1);
+    UnregisterHotKey(NULL, 2);
 }
 
 POINT get_mouse_pos() {
@@ -135,38 +145,25 @@ bool is_lmb_pressed() {
     return false;
 }
 
-bool check_for_keybind(char* key) {
-    /* Checks for the keybind and returns true if one is found */
-    SHORT keyState = GetAsyncKeyState((int)key[0]);
-    if (keyState & 0x8000) {
-        return true;
-    }
-    return false;
-}
-
-bool wait_for_keybind(char* key) {
-    /* Waits for the keybind and returns true if one is found */
-    while(true) {
-        if (check_for_keybind(key)) {
-            return true;
-        }
-    }
-}
-
-HWND get_window() {
-    /* Returns the window */
-    return hwnd;
-}
-
-//Custom Windows Process to handle user input
-//Will need to implment later
+//Custom WNProc to handle hotkeys
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
-        case WM_PAINT:
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hwnd, &ps);
-            EndPaint(hwnd, &ps);
-            break;
+        // Handle the hotkey messages
+       case WM_HOTKEY: 
+        switch (wParam) {
+            case 1:  // Ctrl+Alt+Q  Post a quit message to break loop in simwall.c
+                PostQuitMessage(0);
+                break;
+
+            case 2:  // Ctrl+Alt+P
+                paused = !paused;
+                break;
+
+            case 3:  // Ctrl+Alt+A
+                add_mode = !add_mode;
+                break;
+        }
+        //If not a hotkey message, pass it to the default handler
         default:
             return DefWindowProc(hwnd, msg, wParam, lParam);
     }
@@ -202,8 +199,10 @@ HWND window_setup(RGB bg_color) {
         exit(1);
     }
 
-    // Get the WorkerW window
+    // Get the WorkerW window and make sure it is visible
     HWND hWorkerW = GetDesktopWorkerW();
+    ShowWindow(hWorkerW, SW_SHOW);      
+
 
     // Attach  window to the WorkerW window using SetParent
     SetParent(hwnd, hWorkerW);

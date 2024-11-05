@@ -25,8 +25,6 @@ Heavily abstracted away into not-so-pretty libraries
 
 int CELL_SIZE = 25;
 
-bool add_mode = false;
-
 
 
 /* General purpose cmd-line args 
@@ -193,29 +191,6 @@ Args* parse_args(int argc, char **argv) {
     return args;
 }
 
-void handle_keybinds() {
-    /* Handles the keybinds for the program
-    Meant to be run in the main loop
-    Takes the filling function being used */
-
-    // Quit if Ctrl-Alt-Q is pressed
-    if (check_for_keybind("Q")) {
-        cleanup();
-        exit(0);
-    }
-
-    // Pause if Ctrl-Alt-P is pressed
-    if (check_for_keybind("P")) {
-        wait_for_keybind("P");
-    }
-
-    // Enter add mode if Ctrl-Alt-A is pressed
-    if (check_for_keybind("A")) {
-        add_mode = !add_mode;
-    }
-}
-
-
 int main(int argc, char **argv) {
     // parse arguments
     Args* args = parse_args(argc, argv);
@@ -233,6 +208,17 @@ int main(int argc, char **argv) {
 
     // Initialize the window
     HWND hwnd = window_setup(args->dead_color);
+
+    // Register the hotkeys 
+    if (!RegisterHotKey(hwnd, 1, MOD_CONTROL | MOD_ALT, 'Q')) {
+        printf("Failed to register hotkey for Ctrl+Alt+Q\n");
+    }
+    if (!RegisterHotKey(hwnd, 2, MOD_CONTROL | MOD_ALT, 'P')) {
+        printf("Failed to register hotkey for Ctrl+Alt+P\n");
+    }
+    if (!RegisterHotKey(hwnd, 3, MOD_CONTROL | MOD_ALT, 'A')) {
+        printf("Failed to register hotkey for Ctrl+Alt+A\n");
+    }
 
     // set the fill function based on the flags
     void (*fill_func)(int, int, int) = args->flags & CIRCLE ? fill_circle : fill_cell;
@@ -268,12 +254,43 @@ int main(int argc, char **argv) {
     int cur_color = dead_color_int;
     color(args->dead_color);
 
-    // Main loop
+// Main loop
 DWORD start_time = GetTickCount();
 int frame_duration = 1000 / args->framerate;  // Frame duration based on the framerate
 
 while (1) {
     DWORD frame_start = GetTickCount();  // Start of the frame
+
+    MSG msg;
+    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+    if (msg.message == WM_QUIT) {
+        break;
+    }
+
+    if (paused){
+        continue;       //Skip the drawing loop if paused
+    }
+
+    if (add_mode){
+        if (is_lmb_pressed()) {
+            //set the color to the alive color
+            color(args->alive_color);
+            // get the mouse position
+            POINT mouse_pos = get_mouse_pos();
+            int x = mouse_pos.x / CELL_SIZE;
+            int y = mouse_pos.y / CELL_SIZE;
+
+            // fill the cell
+            current_pattern[y * board_width + x] = ALIVE;
+            fill_func(x, y, CELL_SIZE);
+            }
+
+        continue;       //Skip the drawing loop if in add mode
+    }
+
 
     /* DRAWING PORTION */
     for (int i = 0; i < board_width * board_height; i++) {
