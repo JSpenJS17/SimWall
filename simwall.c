@@ -192,6 +192,22 @@ Args* parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+
+    //Using mutex to prevent multiple instances of the program
+    // Create a named mutex
+    HANDLE hMutex = CreateMutex(NULL, TRUE, "SimWallMutex");
+    if (hMutex == NULL) {
+        fprintf(stderr, "Failed to create mutex\n");
+        return 1;
+    }
+
+    // Check if the mutex already exists
+    if (GetLastError() == ERROR_ALREADY_EXISTS) {
+        fprintf(stderr, "Another instance of SimWall is already running\n");
+        CloseHandle(hMutex);
+        return 1;
+    }
+
     // parse arguments
     Args* args = parse_args(argc, argv);
 
