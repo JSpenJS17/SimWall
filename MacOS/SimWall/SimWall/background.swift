@@ -61,11 +61,17 @@ struct Background: View {
         .onAppear {
             // Start a timer to update the game state every 0.01 seconds
             if RANDOM_PATTERN {
-                layout = cArrayToSwiftArray(pattern: golGenRandom(width: GRID_WIDTH, height: GRID_HEIGHT, percentAlive: STARTING_PERCENTAGE)!, width: GRID_WIDTH, height: GRID_HEIGHT)
+                if simulation == "seeds" {
+                    layout = makeSmallBoard(width: GRID_WIDTH, height: GRID_HEIGHT)
+                } else {
+                    layout = cArrayToSwiftArray(pattern: golGenRandom(width: GRID_WIDTH, height: GRID_HEIGHT, percentAlive: STARTING_PERCENTAGE)!, width: GRID_WIDTH, height: GRID_HEIGHT)
+                }
+                
             } else {
                 // read in from file
             }
             // START LOOP
+            var iterations = 0
             Timer.scheduledTimer(withTimeInterval: speed, repeats: true) { _ in
                 DispatchQueue.global(qos: .userInitiated).async {
                     // Generate the next state in the background
@@ -73,7 +79,7 @@ struct Background: View {
                         if let nextPattern = bbGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT) {
                             DispatchQueue.main.async {
                                 layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT)
-                                if life_remaining(layout: layout, width: GRID_WIDTH, height: GRID_HEIGHT) <= RESET_PERCENT {
+                                if life_remaining(layout: layout, width: GRID_WIDTH, height: GRID_HEIGHT) <= RESET_PERCENT/3 {
                                     layout = RANDOM_PATTERN
                                         ? cArrayToSwiftArray(pattern: golGenRandom(width: GRID_WIDTH, height: GRID_HEIGHT, percentAlive: STARTING_PERCENTAGE)!, width: GRID_WIDTH, height: GRID_HEIGHT)
                                         : layout // or read from file if not random
@@ -87,6 +93,19 @@ struct Background: View {
                                 if life_remaining(layout: layout, width: GRID_WIDTH, height: GRID_HEIGHT) <= RESET_PERCENT {
                                     layout = RANDOM_PATTERN
                                         ? cArrayToSwiftArray(pattern: golGenRandom(width: GRID_WIDTH, height: GRID_HEIGHT, percentAlive: STARTING_PERCENTAGE)!, width: GRID_WIDTH, height: GRID_HEIGHT)
+                                        : layout // or read from file if not random
+                                }
+                            }
+                        }
+                    } else if simulation == "seeds" {
+                        iterations += 1
+                        if let nextPattern = seedsGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT) {
+                            DispatchQueue.main.async {
+                                layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT)
+                                if iterations >= 120 {
+                                    iterations = 0
+                                    layout = RANDOM_PATTERN
+                                    ? makeSmallBoard(width: GRID_WIDTH, height: GRID_HEIGHT)
                                         : layout // or read from file if not random
                                 }
                             }

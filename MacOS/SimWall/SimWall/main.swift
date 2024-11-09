@@ -93,6 +93,8 @@ for i in 1..<argument_count {
                 simulation = "game_of_life"
             } else if CommandLine.arguments[i + 1] == "brians_brain" {
                 simulation = "brians_brain"
+            } else if CommandLine.arguments[i + 1] == "seeds" {
+                simulation = "seeds"
             }
             print("simulation: \(simulation)")
         }
@@ -110,10 +112,9 @@ for i in 1..<argument_count {
             print("speed: \(speed)")
         }
     default:
-        print("nonvalid argument")
+        print("")
     }
 }
-
 
 let app = NSApplication.shared
 let delegate = AppDelegate()
