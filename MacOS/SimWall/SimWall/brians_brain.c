@@ -17,7 +17,7 @@ Description: This program reads a Brain's Brain board state and generates some n
 
 #include "brians_brain.h"
 
-int bb_count_live_neighbors(int* pattern, int width, int height, int cell_index) {
+int bb_count_live_neighbors(const int* pattern, int width, int height, int cell_index) {
     int live_neighbors_count = 0;
     int cell_x = cell_index % width;
     int cell_y = cell_index / width;
@@ -41,7 +41,7 @@ int bb_count_live_neighbors(int* pattern, int width, int height, int cell_index)
 }
 
 
-int* bb_gen_next(int* pattern, int board_width,int board_height){
+int* bb_gen_next(const int* pattern, int board_width, int board_height){
     // Patterns should only contain 0s (dead), 1s(dying), and 2s (alive)
     int* next_pattern = (int*)malloc(board_width * board_height * sizeof(int));
     if (next_pattern == NULL) {
@@ -91,7 +91,7 @@ int* bb_gen_random(int width, int height, int percent_alive){
 }
 
 
-void print_board(int* pattern, int width, int height) {
+void print_board(const int* pattern, int width, int height) {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int cell_value = pattern[y * width + x];
@@ -108,7 +108,7 @@ void print_board(int* pattern, int width, int height) {
 }
 
 
-float measure_life(int* pattern, int board_width, int board_height){
+float measure_life(const int* pattern, int board_width, int board_height){
     int total_cells = board_width * board_height;
     int live_cells = 0;
 

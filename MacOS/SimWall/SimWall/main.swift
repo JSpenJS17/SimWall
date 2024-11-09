@@ -9,7 +9,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create a 50x50 array filled with random 0s and 1s for testing
 
         // Create the SwiftUI view with the color array
-        let contentView = Background(shape: shape, color: color, simulation: simulation)
+        let contentView = Background(shape: shape, color: color, simulation: simulation, speed: speed)
 
         // Create an NSWindow with a transparent background
         window = NSWindow(
@@ -26,20 +26,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = NSHostingView(rootView: contentView)
         window.makeKeyAndOrderFront(nil)
         
-        let clickWindowView = ClickWindow()
-        
-        clickWindow = NSWindow(
-            contentRect: NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 800, height: 600),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        clickWindow.isReleasedWhenClosed = false
-        clickWindow.level = .init(rawValue: Int(CGWindowLevelForKey(.desktopWindow) + 100))
-        clickWindow.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
-        clickWindow.backgroundColor = .clear
-        clickWindow.contentView = NSHostingView(rootView: clickWindowView)
-        clickWindow.makeKeyAndOrderFront(nil)
+//        let clickWindowView = ClickWindow()
+//        
+//        clickWindow = NSWindow(
+//            contentRect: NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 800, height: 600),
+//            styleMask: [.borderless],
+//            backing: .buffered,
+//            defer: false
+//        )
+//        clickWindow.isReleasedWhenClosed = false
+//        clickWindow.level = .init(rawValue: Int(CGWindowLevelForKey(.desktopWindow) + 100))
+//        clickWindow.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+//        clickWindow.backgroundColor = .clear
+//        clickWindow.contentView = NSHostingView(rootView: clickWindowView)
+//        clickWindow.makeKeyAndOrderFront(nil)
     }
 }
 
@@ -48,6 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 var shape = "square"
 var color: Color = .white
 var simulation = "game_of_life"
+var speed = 0.05
 
 let argument_count = CommandLine.arguments.count
 for i in 1..<argument_count {
@@ -95,7 +96,19 @@ for i in 1..<argument_count {
             }
             print("simulation: \(simulation)")
         }
-
+    case "-r":
+        if i != argument_count - 1 {
+            if let argValue = Double(CommandLine.arguments[i + 1]) {
+                if argValue > 0 {
+                    speed = 1/argValue
+                } else {
+                    speed = 0.05
+                }
+            } else {
+                speed = 0.05
+            }
+            print("speed: \(speed)")
+        }
     default:
         print("nonvalid argument")
     }
