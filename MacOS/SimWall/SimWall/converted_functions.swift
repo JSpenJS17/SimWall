@@ -123,3 +123,62 @@ func makeSmallBoard(width: Int, height: Int) -> [[Int]] {
     }
     return board
 }
+
+func makeEmptyBoard(width: Int, height: Int) -> [[Int]] {
+    var board: [[Int]] = []
+    for row in 0..<height {
+        board.append([])
+        for col in 0..<width {
+            board[row].append(0)
+        }
+    }
+    return board
+}
+
+func file_to_board(path: String, width: Int, height: Int) -> [[Int]] {
+    var board: [[Int]] = []
+    let read_in = read_in_file(path: path)
+    let patternHeight = read_in.count
+    let patternWidth = read_in[0].count
+    let rowStart = (height - patternHeight) / 2
+    let colStart = (width - patternWidth) / 2
+
+    for row in 0..<height {
+        var boardRow: [Int] = []
+        for col in 0..<width {
+            if row >= rowStart && row < rowStart + patternHeight && col >= colStart && col < colStart + patternWidth {
+                boardRow.append(read_in[row - rowStart][col - colStart])
+            } else {
+                boardRow.append(0)
+            }
+        }
+        board.append(boardRow)
+    }
+    return board
+}
+
+func read_in_file(path: String) -> [[Int]] {
+    var grid: [[Int]] = []
+    
+    do {
+        // Read the file content as a single string
+        let content = try String(contentsOfFile: path)
+        
+        // Split the content by lines
+        let lines = content.split(separator: "\n")
+        
+        for line in lines {
+            // Convert each character to an Int by iterating over the characters in the line
+            var row: [Int] = []
+            for char in line {
+                if let number = Int(String(char)) {
+                    row.append(number)
+                }
+            }
+            grid.append(row)
+        }
+    } catch {
+        print("Error reading file: \(error)")
+    }
+    return grid
+}

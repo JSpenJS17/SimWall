@@ -9,7 +9,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create a 50x50 array filled with random 0s and 1s for testing
 
         // Create the SwiftUI view with the color array
-        let contentView = Background(shape: shape, color: color, simulation: simulation, speed: speed)
+        let contentView = Background(shape: shape, color: color, simulation: simulation, speed: speed, path: path, solid_background: solid_background, invert: invert)
 
         // Create an NSWindow with a transparent background
         window = NSWindow(
@@ -49,6 +49,9 @@ var shape = "square"
 var color: Color = .white
 var simulation = "game_of_life"
 var speed = 0.05
+var path = ""
+var solid_background = true
+var invert = false
 
 let argument_count = CommandLine.arguments.count
 for i in 1..<argument_count {
@@ -111,6 +114,17 @@ for i in 1..<argument_count {
             }
             print("speed: \(speed)")
         }
+    case "-f":
+        if i != argument_count - 1 {
+            path = CommandLine.arguments[i + 1]
+        }
+        print("path: \(path)")
+    case "-nbg":
+        solid_background = false
+        print("no background")
+    case "-i":
+        invert = true
+        print("inverted mode")
     default:
         print("")
     }
