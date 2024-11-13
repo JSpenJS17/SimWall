@@ -15,6 +15,7 @@ Heavily abstracted away into not-so-pretty libraries
 #include "x11_lib.h"
 #include "game_of_life/game_of_life.h"
 #include "brians_brain/brians_brain.h"
+#include "seeds/seeds.h"
 
 #define DAEMONIZE   1
 #define CIRCLE      1 << 1
@@ -22,6 +23,7 @@ Heavily abstracted away into not-so-pretty libraries
 #define BB          1 << 3
 #define CLEAR       1 << 4
 #define NO_RESTOCK  1 << 5
+#define SEEDS       1 << 6
 
 /* General purpose cmd-line args 
 Can add more later if needed */
@@ -56,6 +58,7 @@ void usage() {
     fprintf(stderr, "  -dying 808080: Set the dying cell color (BB only)\n");
     fprintf(stderr, "  -fps 10.0: Set the framerate\n");
     fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n");
+    fprintf(stderr, "  -seeds: Run Seeds instead of Game of Life\n");
     fprintf(stderr, "  -c: Draw circles instead of a squares\n");
     fprintf(stderr, "  -s 25: Set the cell size in pixels\n");
     fprintf(stderr, "  -nk: Disable keybinds\n");
@@ -182,6 +185,10 @@ Args* parse_args(int argc, char **argv) {
         else if (strcmp(argv[i], "-bb") == 0) {
             args->flags |= BB;
         }
+        // seeds
+        else if (strcmp(argv[i], "-seeds") == 0) {
+            args->flags |= SEEDS;
+        }
         // clear start
         else if (strcmp(argv[i], "-clear") == 0) {
             args->flags |= NO_RESTOCK;
@@ -298,10 +305,23 @@ int main(int argc, char **argv) {
     // set the fill function based on the flags
     fill_func = args->flags & CIRCLE ? fill_circle : fill_cell;
 
+    int* (*gen_next)(int*, int, int);
+    int* (*gen_random)(int, int, int);
+    void (*add_random)(int*, int, int, int);
     // set the generation functions based on the flags
-    int* (*gen_next)(int*, int, int) = args->flags & BB ? bb_gen_next : gol_gen_next;
-    int* (*gen_random)(int, int, int) = args->flags & BB ? bb_gen_random : gol_gen_random;
-    void (*add_random)(int*, int, int, int) = args->flags & BB ? bb_add_life : gol_add_life;
+    if (args->flags & BB) {
+        gen_next = bb_gen_next;
+        gen_random = bb_gen_random;
+        add_random = bb_add_life;
+    } else if (args->flags & SEEDS) {
+        gen_next = seeds_gen_next;
+        gen_random = seeds_gen_random;
+        add_random = seeds_add_life;
+    } else {
+        gen_next = gol_gen_next;
+        gen_random = gol_gen_random;
+        add_random = gol_add_life;
+    }
 
     // set the restock threshold based on the flags
     float restock_thresh = args->flags & BB ? 1.0 : .95;
@@ -330,6 +350,9 @@ int main(int argc, char **argv) {
     // set the color to the background color
     cur_color = dead_color_int;
     color(args->dead_color);
+
+    // define iter count
+    int iter_count = 0;
 
     // Main loop
     while (1) {
@@ -381,10 +404,24 @@ int main(int argc, char **argv) {
         free(cur_board.pattern);
         cur_board.pattern = next_pattern;
 
+        // increment iter count
+        iter_count++;
+
         // check if we need to add more cells
-        if (dead/total >= restock_thresh && !(args->flags & NO_RESTOCK)) {
-            // if 95% (100% in bb) of the board is dead, add more cells
-            add_random(cur_board.pattern, cur_board.width, cur_board.height, 20);
+        if (args->flags & SEEDS) {
+            // if iter count too high
+            if (iter_count >= 100 && !(args->flags & NO_RESTOCK)) {
+                int* next_pattern = gen_random(cur_board.width, cur_board.height, 20);
+                free(cur_board.pattern);
+                cur_board.pattern = next_pattern;
+                iter_count = 0;
+            }
+        } else {
+            // if XX% of the board is dead, add more cells
+            if (dead/total >= restock_thresh && !(args->flags & NO_RESTOCK)) {
+                add_random(cur_board.pattern, cur_board.width, cur_board.height, 20);
+                iter_count = 0;
+            }
         }
         // reset dead count
         dead = 0;

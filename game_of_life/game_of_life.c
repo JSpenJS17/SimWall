@@ -56,7 +56,7 @@ Description: This program reads a GoL board state and generates some number of f
 // }
 
 
-int* read_start_pattern(char* filename, int max_width, int max_height) {
+int* gol_read_start_pattern(char* filename, int max_width, int max_height) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         perror("Failed to open file");
@@ -150,12 +150,14 @@ int gol_count_live_neighbors(int* pattern, int width, int height, int cell_index
         for (int delta_x = -1; delta_x <= 1; delta_x++) {
             if (delta_x == 0 && delta_y == 0) continue; // Skip the cell itself
 
-            int neighbor_x = (cell_x + delta_x + width) % width;
-            int neighbor_y = (cell_y + delta_y + height) % height;
+            int neighbor_x = cell_x + delta_x;
+            int neighbor_y = cell_y + delta_y;
 
-            int neighbor_index = neighbor_y * width + neighbor_x;
-            if (pattern[neighbor_index]) {
-                live_neighbors_count++;
+            if (neighbor_x >= 0 && neighbor_x < width && neighbor_y >= 0 && neighbor_y < height) {
+                int neighbor_index = neighbor_y * width + neighbor_x;
+                if (pattern[neighbor_index] == 1) {
+                    live_neighbors_count++;
+                }
             }
         }
     }
@@ -163,16 +165,16 @@ int gol_count_live_neighbors(int* pattern, int width, int height, int cell_index
 }
 
 
-void print_pattern(int* pattern, int width, int height) {
-    system("clear");
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            printf("%c", pattern[y * width + x] ? 'O' : '-');
-        }
-        printf("\n");
-    }
-    printf("\n");
-}
+// void print_pattern(int* pattern, int width, int height) {
+//     system("clear");
+//     for (int y = 0; y < height; y++) {
+//         for (int x = 0; x < width; x++) {
+//             printf("%c", pattern[y * width + x] ? 'O' : '-');
+//         }
+//         printf("\n");
+//     }
+//     printf("\n");
+// }
 
 
 int* gol_gen_random(int width, int height, int percent_alive) {

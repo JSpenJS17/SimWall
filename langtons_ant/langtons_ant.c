@@ -78,32 +78,32 @@ void print_board(int* grid, int width, int height, Ant* ants, int num_ants) {
 }
 
 
-int main(){
-    int width = 150; // example width
-    int height = 60; // example height
-    int ant_x = width / 2;
-    int ant_y = height / 2;
-    int direction = 0; // default direction
+// int main(){
+//     int width = 150; // example width
+//     int height = 60; // example height
+//     int ant_x = width / 2;
+//     int ant_y = height / 2;
+//     int direction = 0; // default direction
 
-    // index corresponds to rule number 
-    // ex)[R, L]: rule 0 = turn right upon encountering zero, rule 1 = turn left upon encountering one
-    // Acceptable rules include R:RIGHT, L:LEFT, C:CONTINUE, U:U-TURN
-    const char ruleset[] = "RL";
+//     // index corresponds to rule number 
+//     // ex)[R, L]: rule 0 = turn right upon encountering zero, rule 1 = turn left upon encountering one
+//     // Acceptable rules include R:RIGHT, L:LEFT, C:CONTINUE, U:U-TURN
+//     const char ruleset[] = "RL";
 
-    int grid[width * height];
-    for (int i = 0; i < width * height; i++){ // init grid to all zeroes
-        grid[i] = 0;
-    }
+//     int grid[width * height];
+//     for (int i = 0; i < width * height; i++){ // init grid to all zeroes
+//         grid[i] = 0;
+//     }
 
-    Ant my_aunt = {ant_x, ant_y, direction}; // initialize ant(s) and put in ant array
-    Ant ants[] = {my_aunt};
-    int num_ants = sizeof(ants) / sizeof(ants[0]);
+//     Ant my_aunt = {ant_x, ant_y, direction}; // initialize ant(s) and put in ant array
+//     Ant ants[] = {my_aunt};
+//     int num_ants = sizeof(ants) / sizeof(ants[0]);
 
-    while(1) {
-        system("clear");
-        print_board(grid, width, height, ants, num_ants);
-        ant_gen_next(grid, width, height, ants, num_ants, ruleset);
-        usleep(10000);
-    }
-    return 0;
-}
+//     while(1) {
+//         system("clear");
+//         print_board(grid, width, height, ants, num_ants);
+//         ant_gen_next(grid, width, height, ants, num_ants, ruleset);
+//         usleep(10000);
+//     }
+//     return 0;
+// }

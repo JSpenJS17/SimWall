@@ -15,49 +15,44 @@ Description: This program reads a Seeds board state and generates some number of
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
+#include "seeds.h"
 
-// Function prototypes
-bool* read_start_pattern(char* filename, int max_width, int max_height);
-bool* generate_next_pattern(bool* pattern, int width, int height);
-int count_live_neighbors(bool* pattern, int width, int height, int cell_index);
-void print_pattern(bool* pattern, int width, int height);
-void randomize_pattern(bool* pattern, int width, int height);
+// Commented out to keep purely library
+// int main(){
 
+//     char* filename = "start_pattern.txt";
+//     int generations = 10000000;
 
-int main(){
+//     int screen_ratio_width = 16;
+//     int screen_ratio_height = 9;
 
-    char* filename = "start_pattern.txt";
-    int generations = 10000000;
+//     int resolution_scaling_factor = 3;
 
-    int screen_ratio_width = 16;
-    int screen_ratio_height = 9;
+//     int board_width = screen_ratio_width * resolution_scaling_factor;
+//     int board_height = screen_ratio_height * resolution_scaling_factor;
 
-    int resolution_scaling_factor = 3;
+//     bool* start_pattern = read_start_pattern(filename, board_width, board_height);
+//     randomize_pattern(start_pattern, board_width, board_height);
+//     if (start_pattern == NULL) {
+//         return EXIT_FAILURE;
+//     }
 
-    int board_width = screen_ratio_width * resolution_scaling_factor;
-    int board_height = screen_ratio_height * resolution_scaling_factor;
+//     // run main loop
+//     bool* current_pattern = start_pattern;
+//     for (int i = 0; i < generations; i++) {
+//         print_pattern(current_pattern, board_width, board_height);
+//         usleep(100000);
+//         bool* next_pattern = generate_next_pattern(current_pattern, board_width, board_height);
+//         free(current_pattern);
+//         current_pattern = next_pattern;
+//     }
 
-    bool* start_pattern = read_start_pattern(filename, board_width, board_height);
-    randomize_pattern(start_pattern, board_width, board_height);
-    if (start_pattern == NULL) {
-        return EXIT_FAILURE;
-    }
-
-    // run main loop
-    bool* current_pattern = start_pattern;
-    for (int i = 0; i < generations; i++) {
-        print_pattern(current_pattern, board_width, board_height);
-        usleep(100000);
-        bool* next_pattern = generate_next_pattern(current_pattern, board_width, board_height);
-        free(current_pattern);
-        current_pattern = next_pattern;
-    }
-
-    return 0;
-}
+//     return 0;
+// }
 
 
-bool* read_start_pattern(char* filename, int max_width, int max_height) {
+int* seeds_read_start_pattern(char* filename, int max_width, int max_height) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         perror("Failed to open file");
@@ -88,7 +83,7 @@ bool* read_start_pattern(char* filename, int max_width, int max_height) {
     }
 
     // Allocate memory for the full board
-    bool* board = (bool*)calloc(max_width * max_height, sizeof(bool));
+    int* board = (int*)calloc(max_width * max_height, sizeof(int));
     if (board == NULL) {
         perror("Failed to allocate memory for board");
         fclose(file);
@@ -118,8 +113,8 @@ bool* read_start_pattern(char* filename, int max_width, int max_height) {
 }
 
 
-bool* generate_next_pattern(bool* pattern, int width, int height) {
-    bool* next_pattern = (bool*)malloc(width * height * sizeof(bool));
+int* seeds_gen_next(int* pattern, int width, int height) {
+    int* next_pattern = (int*)malloc(width * height * sizeof(int));
     if (next_pattern == NULL) {
         perror("Failed to allocate memory for next pattern");
         exit(EXIT_FAILURE);
@@ -128,7 +123,7 @@ bool* generate_next_pattern(bool* pattern, int width, int height) {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int cell_index = y * width + x;
-            int live_neighbors = count_live_neighbors(pattern, width, height, cell_index);
+            int live_neighbors = seeds_count_live_neighbors(pattern, width, height, cell_index);
 
             // Seeds rule: B2/S
             next_pattern[cell_index] = (!pattern[cell_index] && live_neighbors == 2);
@@ -139,7 +134,7 @@ bool* generate_next_pattern(bool* pattern, int width, int height) {
 }
 
 
-int count_live_neighbors(bool* pattern, int width, int height, int cell_index){
+int seeds_count_live_neighbors(int* pattern, int width, int height, int cell_index){
     int live_neighbors_count = 0;
     int cell_x = cell_index % width;
     int cell_y = cell_index / width;
@@ -148,12 +143,14 @@ int count_live_neighbors(bool* pattern, int width, int height, int cell_index){
         for (int delta_x = -1; delta_x <= 1; delta_x++) {
             if (delta_x == 0 && delta_y == 0) continue; // Skip the cell itself
 
-            int neighbor_x = (cell_x + delta_x + width) % width;
-            int neighbor_y = (cell_y + delta_y + height) % height;
+            int neighbor_x = cell_x + delta_x;
+            int neighbor_y = cell_y + delta_y;
 
-            int neighbor_index = neighbor_y * width + neighbor_x;
-            if (pattern[neighbor_index]) {
-                live_neighbors_count++;
+            if (neighbor_x >= 0 && neighbor_x < width && neighbor_y >= 0 && neighbor_y < height) {
+                int neighbor_index = neighbor_y * width + neighbor_x;
+                if (pattern[neighbor_index] == 1) {
+                    live_neighbors_count++;
+                }
             }
         }
     }
@@ -161,21 +158,39 @@ int count_live_neighbors(bool* pattern, int width, int height, int cell_index){
 }
 
 
-void print_pattern(bool* pattern, int width, int height) {
-    system("clear");
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            printf("%c", pattern[y * width + x] ? 'O' : '-');
+// void print_pattern(int* pattern, int width, int height) {
+//     system("clear");
+//     for (int y = 0; y < height; y++) {
+//         for (int x = 0; x < width; x++) {
+//             printf("%c", pattern[y * width + x] ? 'O' : '-');
+//         }
+//         printf("\n");
+//     }
+//     printf("\n");
+// }
+
+
+int* seeds_gen_random(int width, int height, int percent_alive) {
+    srand(time(NULL));
+    int* pattern = (int*)malloc(width * height * sizeof(int));
+    memset(pattern, 0, width * height * sizeof(int));
+    // Create a block of 6x6 cells in the middle
+    int start_x = width / 2 - 3;
+    int start_y = height / 2 - 3;
+    for (int y = start_y; y < start_y + 6; y++) {
+        for (int x = start_x; x < start_x + 6; x++) {
+            pattern[y*width + x] = (rand() % 100) < percent_alive;
         }
-        printf("\n");
     }
-    printf("\n");
+    return pattern;
 }
 
-
-void randomize_pattern(bool* pattern, int width, int height) {
+void seeds_add_life(int* pattern, int width, int height, int percent_alive) {
+    // Airdrop some extra cells!!
     srand(time(NULL));
     for (int i = 0; i < width * height; i++) {
-        pattern[i] = rand() % 2;
+        if (pattern[i] == 0) {
+            pattern[i] = (rand() % 100) < percent_alive;
+        }
     }
 }

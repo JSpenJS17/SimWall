@@ -91,21 +91,21 @@ int* bb_gen_random(int width, int height, int percent_alive){
 }
 
 
-void print_board(int* pattern, int width, int height) {
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            int cell_value = pattern[y * width + x];
-            if (cell_value == DEAD) {
-                printf("-");
-            } else if (cell_value == DYING) {
-                printf("*");
-            } else if (cell_value == ALIVE) {
-                printf("0");
-            }
-        }
-        printf("\n");
-    }
-}
+// void print_board(int* pattern, int width, int height) {
+//     for (int y = 0; y < height; y++) {
+//         for (int x = 0; x < width; x++) {
+//             int cell_value = pattern[y * width + x];
+//             if (cell_value == DEAD) {
+//                 printf("-");
+//             } else if (cell_value == DYING) {
+//                 printf("*");
+//             } else if (cell_value == ALIVE) {
+//                 printf("0");
+//             }
+//         }
+//         printf("\n");
+//     }
+// }
 
 
 float measure_life(int* pattern, int board_width, int board_height){
