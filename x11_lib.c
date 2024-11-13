@@ -24,12 +24,12 @@ static int screen;
 static GC gc;
 
 /* Functions */
-void fill_cell(int x, int y, int size) {
+void fill_cell(int x, int y, size_t size) {
     /* Fills a cell at x, y with the current color */
     XFillRectangle(display, window, gc, x*size, y*size, size, size);
 }
 
-void fill_circle(int x, int y, int size) {
+void fill_circle(int x, int y, size_t size) {
     /* Fills a circle at x, y with the current color */
     XFillArc(display, window, gc, x*size, y*size, size, size, 0, 360*64);
 }

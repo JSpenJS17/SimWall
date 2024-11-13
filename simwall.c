@@ -16,6 +16,7 @@ Heavily abstracted away into not-so-pretty libraries
 #include "game_of_life/game_of_life.h"
 #include "brians_brain/brians_brain.h"
 #include "seeds/seeds.h"
+#include "langtons_ant/langtons_ant.h"
 
 #define DAEMONIZE   1
 #define CIRCLE      1 << 1
@@ -24,6 +25,7 @@ Heavily abstracted away into not-so-pretty libraries
 #define CLEAR       1 << 4
 #define NO_RESTOCK  1 << 5
 #define SEEDS       1 << 6
+#define ANT         1 << 7
 
 /* General purpose cmd-line args 
 Can add more later if needed */
@@ -42,9 +44,9 @@ struct Board {
 typedef struct Board Board;
 
 // Globals
-int CELL_SIZE = 25;
+size_t CELL_SIZE = 25;
 bool add_mode = false;
-void (*fill_func)(int, int, int);
+void (*fill_func)(int, int, size_t); // x, y, size
 Args* args;
 int cur_color;
 
@@ -55,16 +57,21 @@ void usage() {
     fprintf(stderr, "  -D, -d, --daemonize: Daemonize the process\n");
     fprintf(stderr, "  -dead 000000: Set the dead cell color\n");
     fprintf(stderr, "  -alive FFFFFF: Set the alive cell color\n");
-    fprintf(stderr, "  -dying 808080: Set the dying cell color (BB only)\n");
+    fprintf(stderr, "  -dying, -ant_color 808080: Set the dying (or ant) cell color (BB/Langton's Ant only)\n");
     fprintf(stderr, "  -fps 10.0: Set the framerate\n");
     fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n");
     fprintf(stderr, "  -seeds: Run Seeds instead of Game of Life\n");
+    fprintf(stderr, "  -ant: Run Langton's Ant instead of Game of Life\n");
+    //TODO: Implement these
+    //fprintf(stderr, "  -ant_rules \"RLCU\": Set the ruleset for Langton's Ant\n");
+    //fprintf(stderr, "  -ants ants.txt: Give input ant locations and directions in a file.\n     Format: x y direction\\n\n");
     fprintf(stderr, "  -c: Draw circles instead of a squares\n");
     fprintf(stderr, "  -s 25: Set the cell size in pixels\n");
     fprintf(stderr, "  -nk: Disable keybinds\n");
     fprintf(stderr, "  -nr: No restocking if board is too empty\n");
     fprintf(stderr, "  -clear: Start with a clear board. Includes -nr\n");
-    fprintf(stderr, "Example: simwall -bg FF00FF -fg 00FF00 -fps 10.0\n");
+    fprintf(stderr, "Example: simwall -dead FF00FF -alive 00FF00 -fps 7.5\n");
+    exit(1);
 }
 
 Args* parse_args(int argc, char **argv) {
@@ -91,7 +98,6 @@ Args* parse_args(int argc, char **argv) {
         if (strcmp(argv[i], "-h") == 0 ||
             strcmp(argv[i], "--help") == 0) {
             usage();
-            exit(1);
         }
         // daemonize
         else if (strcmp(argv[i], "-D") == 0 || 
@@ -108,32 +114,29 @@ Args* parse_args(int argc, char **argv) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -dead\n");
                 usage();
-                exit(1);
             }
             // convert the hex to RGB
             char* dead_color_str = argv[i+1];
             if (strlen(dead_color_str) != 6) {
                 fprintf(stderr, "Invalid color: %s\n", dead_color_str);
                 usage();
-                exit(1);
             }
             // Use sscanf to convert hex to RGB
             sscanf(dead_color_str, "%2hx%2hx%2hx", &args->dead_color.r, &args->dead_color.g, &args->dead_color.b);
             i++; // increment i to simulate parsing the hex string
         }
         // dying color
-        else if (strcmp(argv[i], "-dying") == 0) {
+        else if (strcmp(argv[i], "-dying") == 0 ||
+                 strcmp(argv[i], "-ant_color") == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -dying\n");
                 usage();
-                exit(1);
             }
             // convert the hex to RGB
             char* dying_color_str = argv[i+1];
             if (strlen(dying_color_str) != 6) {
                 fprintf(stderr, "Invalid color: %s\n", dying_color_str);
                 usage();
-                exit(1);
             }
             // Use sscanf to convert hex to RGB
             sscanf(dying_color_str, "%2hx%2hx%2hx", &args->dying_color.r, &args->dying_color.g, &args->dying_color.b);
@@ -144,14 +147,12 @@ Args* parse_args(int argc, char **argv) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -alive\n");
                 usage();
-                exit(1);
             }
             // convert the hex to RGB
             char* alive_color_str = argv[i+1];
             if (strlen(alive_color_str) != 6) {
                 fprintf(stderr, "Invalid color: %s\n", alive_color_str);
                 usage();
-                exit(1);
             }
             // Use sscanf to convert hex to RGB
             sscanf(alive_color_str, "%2hx%2hx%2hx", &args->alive_color.r, &args->alive_color.g, &args->alive_color.b);
@@ -162,7 +163,6 @@ Args* parse_args(int argc, char **argv) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -fps\n");
                 usage();
-                exit(1);
             }
             args->framerate = atof(argv[i+1]);
             i += 1; 
@@ -172,7 +172,6 @@ Args* parse_args(int argc, char **argv) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -s\n");
                 usage();
-                exit(1);
             }
             CELL_SIZE = atoi(argv[i+1]);
             i += 1;
@@ -189,6 +188,11 @@ Args* parse_args(int argc, char **argv) {
         else if (strcmp(argv[i], "-seeds") == 0) {
             args->flags |= SEEDS;
         }
+        // langton's ant
+        else if (strcmp(argv[i], "-ant") == 0) {
+            args->flags |= ANT;
+            args->flags |= NO_RESTOCK;
+        }
         // clear start
         else if (strcmp(argv[i], "-clear") == 0) {
             args->flags |= NO_RESTOCK;
@@ -201,7 +205,6 @@ Args* parse_args(int argc, char **argv) {
         else {
             fprintf(stderr, "Unknown argument: %s\n", argv[i]);
             usage();
-            exit(1);
         }
     }
 
@@ -303,7 +306,7 @@ int main(int argc, char **argv) {
     }
 
     // set the fill function based on the flags
-    fill_func = args->flags & CIRCLE ? fill_circle : fill_cell;
+    fill_func = args->flags & CIRCLE ? fill_circle : fill_cell; // (x, y, size)
 
     int* (*gen_next)(int*, int, int);
     int* (*gen_random)(int, int, int);
@@ -317,6 +320,10 @@ int main(int argc, char **argv) {
         gen_next = seeds_gen_next;
         gen_random = seeds_gen_random;
         add_random = seeds_add_life;
+    } else if (args->flags & ANT) {
+        gen_next = ant_gen_next;
+        gen_random = ant_gen_random;
+        add_random = ant_add_life;
     } else {
         gen_next = gol_gen_next;
         gen_random = gol_gen_random;
@@ -330,8 +337,7 @@ int main(int argc, char **argv) {
     Board cur_board;
     cur_board.height = screen_height() / CELL_SIZE;
     cur_board.width = screen_width() / CELL_SIZE;
-
-
+    
     // Set up the board with random start
     cur_board.pattern = (*gen_random)(cur_board.width, cur_board.height, 20);
     if (args->flags & CLEAR) {
@@ -341,6 +347,19 @@ int main(int argc, char **argv) {
     // track how many dead there are
     float dead = 0;
     const float total = cur_board.width * cur_board.height;
+
+    // set up the ants
+    int num_ants;
+    Ant* ants;
+
+    if (args->flags & ANT) {
+        num_ants = 1;
+        ants = (Ant*)malloc(num_ants * sizeof(Ant));
+        for (int i = 0; i < num_ants; i++) {
+            ants[i] = (Ant){.x = cur_board.width/2+i, .y = cur_board.height/2+i, .direction = 0};
+        }
+        init_ants(ants, 1, "RL");
+    }
 
     // define the colors as ints for X11
     int dead_color_int = rgb_to_int(args->dead_color);
@@ -397,6 +416,16 @@ int main(int argc, char **argv) {
             (*fill_func)(cur_board.width, i, CELL_SIZE);
         }
 
+        // Handle drawing ants over the now completed board
+        if (args->flags & ANT) {
+            // Loop through the ants and draw them
+            for (int ant_index = 0; ant_index < num_ants; ant_index++) {
+                color(args->dying_color);
+                Ant ant = ants[ant_index];
+                fill_func(ant.x, ant.y, CELL_SIZE);
+                cur_color = rgb_to_int(args->dying_color);
+            }
+        }
 
         /* GENERATION PORTION */
         // Now generate the next pattern

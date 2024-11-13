@@ -42,8 +42,8 @@ typedef struct POS POS;
 
 /* Function prototypes */
 void x11_cleanup();
-void fill_cell(int x, int y, int size);
-void fill_circle(int x, int y, int size);
+void fill_cell(int x, int y, size_t size);
+void fill_circle(int x, int y, size_t size);
 void color(RGB rgb);
 int rgb_to_int(RGB rgb);
 Display* window_setup(RGB bg_color);

@@ -11,16 +11,14 @@ Langton's ant
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include "langtons_ant.h"
 
+// Globals to let this be imported as the others are
+static int num_ants;
+static char* ruleset;
+static Ant* ants;
 
-typedef struct {
-    int x;
-    int y;
-    int direction; // 0:UP, 1:RIGHT, 2:DOWN, 3:LEFT
-} Ant;
-
-
-void ant_gen_next(int* grid, int width, int height, Ant* ants, int num_ants, const char* ruleset) {
+int* ant_gen_next(int* grid, int width, int height) {
     for (int i = 0; i < num_ants; i++) {
         int current_index = ants[i].y * width + ants[i].x;
         char current_rule = ruleset[grid[current_index]];
@@ -39,70 +37,89 @@ void ant_gen_next(int* grid, int width, int height, Ant* ants, int num_ants, con
         
         // Move ant
         switch(ants[i].direction) {
-            case 0: ants[i].y--; break; // Up
-            case 1: ants[i].x++; break; // Right
-            case 2: ants[i].y++; break; // Down
-            case 3: ants[i].x--; break; // Left
+            case UP: ants[i].y--; break;
+            case RIGHT: ants[i].x++; break;
+            case DOWN: ants[i].y++; break;
+            case LEFT: ants[i].x--; break;
         }
         
         // Wrap around edges
         ants[i].x = (ants[i].x + width) % width;
         ants[i].y = (ants[i].y + height) % height;
+
     }
+    int* new_grid = (int*)malloc(width * height * sizeof(int));
+    memcpy(new_grid, grid, width * height * sizeof(int));
+    return new_grid;
 }
 
+void init_ants(Ant* inp_ants, int inp_num_ants, char* inp_ruleset) {
+    ants = inp_ants;
+    ruleset = inp_ruleset;
+    num_ants = inp_num_ants;
+}
 
-void print_board(int* grid, int width, int height, Ant* ants, int num_ants) {
-    int ant_indeces[num_ants]; // Use num_ants instead of sizeof(ants)
-    for (int i = 0; i < num_ants; i++) {
-        ant_indeces[i] = ants[i].y * width + ants[i].x;
-    }
+void ant_add_life(int* pattern, int width, int height, int percent_alive) {
+    // Would airdrop extra cells, but that's not how Ant works.
+    // Will do nothing, is here so that it's consistent with the other functions
+    return;
+}
+
+int* ant_gen_random(int width, int height, int percent_alive) {
+    // Would generate a random board, but that's not how Ant works.
+    // Will generate a blank board
+    int* grid = (int*)malloc(width * height * sizeof(int));
+    memset(grid, 0, width * height * sizeof(int));
+    return grid;
+}
+
+// void print_board(int* grid, int width, int height, Ant* ants, int num_ants) {
+//     int ant_indeces[num_ants]; // Use num_ants instead of sizeof(ants)
+//     for (int i = 0; i < num_ants; i++) {
+//         ant_indeces[i] = ants[i].y * width + ants[i].x;
+//     }
     
-    for (int i = 0; i < width * height; i++) {
-        int ant_here = 0;
-        for (int j = 0; j < num_ants; j++) {
-            if (i == ant_indeces[j]) { // Check against each ant index
-                ant_here = 1;
-                break;
-            }
-        }
-        if (ant_here) {
-            printf("^");
-        } else {
-            printf("%d", grid[i]);
-        }
-        if ((i + 1) % width == 0) {
-            printf("\n");
-        }
-    }
-}
-
+//     for (int i = 0; i < width * height; i++) {
+//         int ant_here = 0;
+//         for (int j = 0; j < num_ants; j++) {
+//             if (i == ant_indeces[j]) { // Check against each ant index
+//                 ant_here = 1;
+//                 break;
+//             }
+//         }
+//         if (ant_here) {
+//             printf("^");
+//         } else {
+//             printf("%d", grid[i]);
+//         }
+//         if ((i + 1) % width == 0) {
+//             printf("\n");
+//         }
+//     }
+// }
 
 // int main(){
 //     int width = 150; // example width
 //     int height = 60; // example height
-//     int ant_x = width / 2;
-//     int ant_y = height / 2;
-//     int direction = 0; // default direction
 
 //     // index corresponds to rule number 
 //     // ex)[R, L]: rule 0 = turn right upon encountering zero, rule 1 = turn left upon encountering one
 //     // Acceptable rules include R:RIGHT, L:LEFT, C:CONTINUE, U:U-TURN
-//     const char ruleset[] = "RL";
+//     // ruleset = "RL"; // example ruleset
 
 //     int grid[width * height];
-//     for (int i = 0; i < width * height; i++){ // init grid to all zeroes
-//         grid[i] = 0;
-//     }
+//     memset(grid, 0, width * height * sizeof(int));
 
-//     Ant my_aunt = {ant_x, ant_y, direction}; // initialize ant(s) and put in ant array
-//     Ant ants[] = {my_aunt};
-//     int num_ants = sizeof(ants) / sizeof(ants[0]);
+//     Ant my_ant = {width/2, height/2, 0}; // initialize ant(s) and put in ant array
+//     ants = (Ant*)malloc(num_ants * sizeof(Ant)); // allocate memory depending on # of ants
+//     ants[0] = my_ant; // add ant to array, could be a loop
+
+//     init_ants(ants, 1, "RL");
 
 //     while(1) {
 //         system("clear");
 //         print_board(grid, width, height, ants, num_ants);
-//         ant_gen_next(grid, width, height, ants, num_ants, ruleset);
+//         ant_gen_next(grid, width, height);
 //         usleep(10000);
 //     }
 //     return 0;
