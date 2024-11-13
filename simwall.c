@@ -23,10 +23,6 @@ Heavily abstracted away into not-so-pretty libraries
 #define CLEAR       1 << 4
 #define NO_RESTOCK  1 << 5
 
-int CELL_SIZE = 25;
-
-bool add_mode = false;
-
 /* General purpose cmd-line args 
 Can add more later if needed */
 struct Args {
@@ -35,6 +31,20 @@ struct Args {
     float framerate;
 };
 typedef struct Args Args;
+
+/* Struct to store board information */
+struct Board {
+    int width, height;
+    int* pattern;
+};
+typedef struct Board Board;
+
+// Globals
+int CELL_SIZE = 25;
+bool add_mode = false;
+void (*fill_func)(int, int, int);
+Args* args;
+int cur_color;
 
 void usage() {
     fprintf(stderr, "Usage: simwall [options]\n");
@@ -191,7 +201,7 @@ Args* parse_args(int argc, char **argv) {
     return args;
 }
 
-void handle_keybinds() {
+void handle_keybinds(Board* cur_board) {
     /* Handles the keybinds for the program
     Meant to be run in the main loop
     Takes the filling function being used */
@@ -208,8 +218,52 @@ void handle_keybinds() {
     }
 
     // Enter add mode if Ctrl-Alt-A is pressed
-    if (check_for_keybind("A")) {
-        add_mode = !add_mode;
+    if (check_for_keybind("A") && !add_mode) {
+        // set add_mode to true to prevent extra recursion into here
+        add_mode = true;
+
+        // set the color to the cell color
+        color(args->alive_color);
+        cur_color = rgb_to_int(args->alive_color);
+
+        // loop until we're out of add mode (effectively pause)
+            // this is to prevent placed cells from instantly dying
+        while (!check_for_keybind("A")) {
+            // if the left mouse button is being pressed
+            if (is_lmb_pressed()) {
+                // get the mouse position
+                POS mouse_pos = get_mouse_pos();
+                int x = mouse_pos.x / CELL_SIZE;
+                int y = mouse_pos.y / CELL_SIZE;
+
+                // fill the cell
+                cur_board->pattern[y * cur_board->width + x] = ALIVE;
+                fill_func(x, y, CELL_SIZE);
+            }
+
+            // also have keybind handling here
+            handle_keybinds(cur_board);
+            // sleep a while
+            usleep(10000);
+        }
+
+        // set it to false now that we're out
+        add_mode = false;
+    }
+
+    // Clear the board if Ctrl-Alt-D is pressed
+    if (check_for_keybind("D")) {
+        // Set the board to deads
+        memset(cur_board->pattern, DEAD, cur_board->width * cur_board->height * sizeof(int));
+
+        // Set the color
+        color(args->dead_color);
+        cur_color = rgb_to_int(args->dead_color);
+
+        // Fill the board right here and now for instant updates!
+        for (int i = 0; i < cur_board->width * cur_board->height; i++) {
+            (*fill_func)(i % cur_board->width, i / cur_board->width, CELL_SIZE);
+        }
     }
 }
 
@@ -220,7 +274,7 @@ I cannot. Maybe the answer is to look at the root window and check
 its events? Cause the root window is overlayed on the sim */
 int main(int argc, char **argv) {
     // parse arguments
-    Args* args = parse_args(argc, argv);
+    args = parse_args(argc, argv);
 
     // daemonize if they asked for it
     if (args->flags & DAEMONIZE) {
@@ -233,15 +287,16 @@ int main(int argc, char **argv) {
     // Initialize the window
     Display* display = window_setup(args->dead_color);
     
-    // Set up add, pause, and quit keybinds
+    // Set up add, pause, delete (clear), and quit keybinds
     if (args->flags & KEYBINDS) {
         setup_keybind("A");
         setup_keybind("P");
         setup_keybind("Q");
+        setup_keybind("D");
     }
 
     // set the fill function based on the flags
-    void (*fill_func)(int, int, int) = args->flags & CIRCLE ? fill_circle : fill_cell;
+    fill_func = args->flags & CIRCLE ? fill_circle : fill_cell;
 
     // set the generation functions based on the flags
     int* (*gen_next)(int*, int, int) = args->flags & BB ? bb_gen_next : gol_gen_next;
@@ -252,18 +307,20 @@ int main(int argc, char **argv) {
     float restock_thresh = args->flags & BB ? 1.0 : .95;
 
     // GAME TIME!!!    
-    int board_height = screen_height() / CELL_SIZE;
-    int board_width = screen_width() / CELL_SIZE;
+    Board cur_board;
+    cur_board.height = screen_height() / CELL_SIZE;
+    cur_board.width = screen_width() / CELL_SIZE;
+
 
     // Set up the board with random start
-    int* current_pattern = (*gen_random)(board_width, board_height, 20);
+    cur_board.pattern = (*gen_random)(cur_board.width, cur_board.height, 20);
     if (args->flags & CLEAR) {
-        memset(current_pattern, 0, board_width * board_height * sizeof(int));
+        memset(cur_board.pattern, 0, cur_board.width * cur_board.height * sizeof(int));
     }
 
     // track how many dead there are
     float dead = 0;
-    const float total = board_width * board_height;
+    const float total = cur_board.width * cur_board.height;
 
     // define the colors as ints for X11
     int dead_color_int = rgb_to_int(args->dead_color);
@@ -271,7 +328,7 @@ int main(int argc, char **argv) {
     int dying_color_int = rgb_to_int(args->dying_color);
 
     // set the color to the background color
-    int cur_color = dead_color_int;
+    cur_color = dead_color_int;
     color(args->dead_color);
 
     // Main loop
@@ -281,19 +338,19 @@ int main(int argc, char **argv) {
 
         /* DRAWING PORTION */
         // loop through our board and draw it
-        for (int i = 0; i < board_width * board_height; i++) {
+        for (int i = 0; i < cur_board.width * cur_board.height; i++) {
             // check current cell's alive state
-            if (current_pattern[i] == ALIVE && cur_color != alive_color_int) {
+            if (cur_board.pattern[i] == ALIVE && cur_color != alive_color_int) {
                 // if alive and we're not already on the fg color, switch to it
                 cur_color = alive_color_int;
                 color(args->alive_color);
             }
-            else if (current_pattern[i] == DYING && cur_color != rgb_to_int(args->dying_color)) {
+            else if (cur_board.pattern[i] == DYING && cur_color != rgb_to_int(args->dying_color)) {
                 // if dying and we're not already on the dying color, switch to it
                 cur_color = rgb_to_int(args->dying_color);
                 color(args->dying_color);
             }
-            else if (current_pattern[i] == DEAD) {
+            else if (cur_board.pattern[i] == DEAD) {
                 // if dead, increment dead count
                 dead++;
                 if (cur_color != dead_color_int) {
@@ -304,68 +361,40 @@ int main(int argc, char **argv) {
             }
 
             // fill the cell with whatever color we land on
-            (*fill_func)(i % board_width, i / board_width, CELL_SIZE);
+            (*fill_func)(i % cur_board.width, i / cur_board.width, CELL_SIZE);
         }
 
         color(args->dead_color);
         cur_color = dead_color_int;
         // fill one more row and col with bg to make sure we fill the whole screen
-        for (int i = 0; i < board_width; i++) {
-            (*fill_func)(i, board_height, CELL_SIZE);
+        for (int i = 0; i < cur_board.width; i++) {
+            (*fill_func)(i, cur_board.height, CELL_SIZE);
         }
-        for (int i = 0; i < board_height; i++) {
-            (*fill_func)(board_width, i, CELL_SIZE);
+        for (int i = 0; i < cur_board.height; i++) {
+            (*fill_func)(cur_board.width, i, CELL_SIZE);
         }
 
 
         /* GENERATION PORTION */
         // Now generate the next pattern
-        int* next_pattern = (*gen_next)(current_pattern, board_width, board_height);
-        free(current_pattern);
-        current_pattern = next_pattern;
+        int* next_pattern = (*gen_next)(cur_board.pattern, cur_board.width, cur_board.height);
+        free(cur_board.pattern);
+        cur_board.pattern = next_pattern;
 
         // check if we need to add more cells
         if (dead/total >= restock_thresh && !(args->flags & NO_RESTOCK)) {
-            // if 95% (99% in bb) of the board is dead, add more cells
-            add_random(current_pattern, board_width, board_height, 10);
+            // if 95% (100% in bb) of the board is dead, add more cells
+            add_random(cur_board.pattern, cur_board.width, cur_board.height, 20);
         }
         // reset dead count
         dead = 0;
 
+
         /* EXTRA FEATURES */
         // keybind processing
         if (args->flags & KEYBINDS) {
-            handle_keybinds();
+            handle_keybinds(&cur_board);
         }
-
-        // Add cells if in add mode
-        if (add_mode) {
-            // set the color to the cell color
-            color(args->alive_color);
-            cur_color = alive_color_int;
-
-            // loop until we're out of add mode (effectively pause)
-                // this is to prevent placed cells from instantly dying
-            while (add_mode) {
-                // if the left mouse button is being pressed
-                if (is_lmb_pressed()) {
-                    // get the mouse position
-                    POS mouse_pos = get_mouse_pos();
-                    int x = mouse_pos.x / CELL_SIZE;
-                    int y = mouse_pos.y / CELL_SIZE;
-
-                    // fill the cell
-                    current_pattern[y * board_width + x] = ALIVE;
-                    fill_func(x, y, CELL_SIZE);
-                }
-
-                // handle keybinds to allow escape from here
-                handle_keybinds();
-                // sleep a while
-                usleep(10000);
-            }
-        }
-
 
         // sleep for the remainder of the frame time, which is usually 100% of it
         time_t end_time = time(NULL);
@@ -377,7 +406,7 @@ int main(int argc, char **argv) {
 
     // cleanup
     free(args);
-    free(current_pattern);
+    free(cur_board.pattern);
     x11_cleanup();
     return 0;
 }

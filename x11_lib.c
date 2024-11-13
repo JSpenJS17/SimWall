@@ -93,6 +93,37 @@ void x11_cleanup() {
     XCloseDisplay(display);
 }
 
+void display_image(char* path, int x, int y) {
+    /* Displays an image at x, y */
+    // Open the image
+    FILE* image = fopen(path, "r");
+    if (image == NULL) {
+        fprintf(stderr, "Error opening image file\n");
+        return;
+    }
+
+    // Read the image
+    fseek(image, 0, SEEK_END);
+    long size = ftell(image);
+    fseek(image, 0, SEEK_SET);
+    uchar* data = malloc(size);
+    fread(data, 1, size, image);
+    fclose(image);
+
+    // Create the pixmap
+    Pixmap pixmap = XCreatePixmap(display, window, 100, 100, DefaultDepth(display, screen));
+    XImage* ximage = XCreateImage(display, DefaultVisual(display, screen), DefaultDepth(display, screen), ZPixmap, 0, data, 100, 100, 32, 0);
+    XPutImage(display, pixmap, gc, ximage, 0, 0, 0, 0, 100, 100);
+
+    // Draw the image
+    XCopyArea(display, pixmap, window, gc, 0, 0, 100, 100, x, y);
+
+    // Free the data
+    free(data);
+    XFreePixmap(display, pixmap);
+    XDestroyImage(ximage);
+}
+
 POS get_mouse_pos() {
     /* Returns true if the left mouse button is pressed */
     Window child; // child window the pointer is in, if any

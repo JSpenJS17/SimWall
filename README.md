@@ -3,8 +3,6 @@ Implements a Conway's Game of Life and Brian's Brain as a desktop wallpaper.
 Display made with X11 libraries in C.
 
 ## TODO:
-Remove old Python demos, clean up repo
-
 Add subdirectories for Linux, Mac, Windows w/ common library
 
 Add "delete mode"
@@ -24,6 +22,8 @@ Keybinds:
 `Ctrl-Alt-P` Pause
 
 `Ctrl-Alt-A` Enter/Exit add mode
+
+`Ctrl-Alt-D` Delete all cells
 
 Add Mode:
 

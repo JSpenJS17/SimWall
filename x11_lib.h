@@ -42,7 +42,6 @@ typedef struct POS POS;
 
 /* Function prototypes */
 void x11_cleanup();
-void fill_background();
 void fill_cell(int x, int y, int size);
 void fill_circle(int x, int y, int size);
 void color(RGB rgb);
@@ -61,6 +60,6 @@ void focus_window();
 void unfocus_window();
 POS get_mouse_pos();
 bool is_lmb_pressed();
-
+void display_image(char* path, int x, int y);
 
 #endif
