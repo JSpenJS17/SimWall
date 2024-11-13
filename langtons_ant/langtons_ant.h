@@ -9,7 +9,8 @@ typedef enum {
     UP,
     RIGHT,
     DOWN,
-    LEFT
+    LEFT,
+    NUM_DIRS
 } Direction;
 
 int* ant_gen_next(int* grid, int width, int height);

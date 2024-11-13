@@ -28,11 +28,11 @@ int* ant_gen_next(int* grid, int width, int height) {
         
         // Update direction
         if (current_rule == 'L') {
-            ants[i].direction = (ants[i].direction + 3) % 4;
+            ants[i].direction = (ants[i].direction + 3) % NUM_DIRS;
         } else if (current_rule == 'R') {
-            ants[i].direction = (ants[i].direction + 1) % 4;
+            ants[i].direction = (ants[i].direction + 1) % NUM_DIRS;
         } else if (current_rule == 'U') {
-            ants[i].direction = (ants[i].direction + 2) % 4;
+            ants[i].direction = (ants[i].direction + 2) % NUM_DIRS;
         }
         
         // Move ant

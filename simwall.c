@@ -30,8 +30,9 @@ Heavily abstracted away into not-so-pretty libraries
 /* General purpose cmd-line args 
 Can add more later if needed */
 struct Args {
-    RGB alive_color, dead_color, dying_color;
+    RGB alive_color, dead_color, dying_color, ant_color;
     uchar flags;
+    char* ant_rules;
     float framerate;
 };
 typedef struct Args Args;
@@ -57,14 +58,16 @@ void usage() {
     fprintf(stderr, "  -D, -d, --daemonize: Daemonize the process\n");
     fprintf(stderr, "  -dead 000000: Set the dead cell color\n");
     fprintf(stderr, "  -alive FFFFFF: Set the alive cell color\n");
-    fprintf(stderr, "  -dying, -ant_color 808080: Set the dying (or ant) cell color (BB/Langton's Ant only)\n");
+    fprintf(stderr, "  -dying 808080: Set the dying cell color\n");
     fprintf(stderr, "  -fps 10.0: Set the framerate\n");
     fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n");
     fprintf(stderr, "  -seeds: Run Seeds instead of Game of Life\n");
     fprintf(stderr, "  -ant: Run Langton's Ant instead of Game of Life\n");
+    fprintf(stderr, "    -ant_rules RLCU: Set the ant ruleset\n");
+    fprintf(stderr, "    -ant_color FF0000: Set the ant color\n");
     //TODO: Implement these
-    //fprintf(stderr, "  -ant_rules \"RLCU\": Set the ruleset for Langton's Ant\n");
-    //fprintf(stderr, "  -ants ants.txt: Give input ant locations and directions in a file.\n     Format: x y direction\\n\n");
+    // fprintf(stderr, "    -color_list 000000 808080 FFFFFF ... : Set the color list for states in Langton's Ant")
+    // fprintf(stderr, "    -ants ants.txt: Give input ant locations and directions in a file.\n       Format: x y direction\\n\n");
     fprintf(stderr, "  -c: Draw circles instead of a squares\n");
     fprintf(stderr, "  -s 25: Set the cell size in pixels\n");
     fprintf(stderr, "  -nk: Disable keybinds\n");
@@ -91,6 +94,10 @@ Args* parse_args(int argc, char **argv) {
     args->dying_color.r = 128;
     args->dying_color.g = 128;
     args->dying_color.b = 128;
+    args->ant_color.r = 255;
+    args->ant_color.g = 0;
+    args->ant_color.b = 0;
+    args->ant_rules = "RL";
 
     // parse the args
     for (int i = 1; i < argc; i++) {
@@ -126,8 +133,7 @@ Args* parse_args(int argc, char **argv) {
             i++; // increment i to simulate parsing the hex string
         }
         // dying color
-        else if (strcmp(argv[i], "-dying") == 0 ||
-                 strcmp(argv[i], "-ant_color") == 0) {
+        else if (strcmp(argv[i], "-dying") == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -dying\n");
                 usage();
@@ -175,6 +181,31 @@ Args* parse_args(int argc, char **argv) {
             }
             CELL_SIZE = atoi(argv[i+1]);
             i += 1;
+        }
+        // langton's ant ruleset
+        else if (strcmp(argv[i], "-ant_rules") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "Not enough arguments for -ant_rules\n");
+                usage();
+            }
+            args->ant_rules = argv[i+1];
+            i += 1;
+        }
+        // langton's ant color
+        else if (strcmp(argv[i], "-ant_color") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "Not enough arguments for -ant_color\n");
+                usage();
+            }
+            // convert the hex to RGB
+            char* ant_color_str = argv[i+1];
+            if (strlen(ant_color_str) != 6) {
+                fprintf(stderr, "Invalid color: %s\n", ant_color_str);
+                usage();
+            }
+            // Use sscanf to convert hex to RGB
+            sscanf(ant_color_str, "%2hx%2hx%2hx", &args->ant_color.r, &args->ant_color.g, &args->ant_color.b);
+            i++; // increment i to simulate parsing the hex string
         }
         // disable keybinds
         else if (strcmp(argv[i], "-nk") == 0) {
@@ -234,7 +265,7 @@ void handle_keybinds(Board* cur_board) {
 
         // set the color to the cell color
         color(args->alive_color);
-        cur_color = rgb_to_int(args->alive_color);
+        cur_color = ALIVE;
 
         // loop until we're out of add mode (effectively pause)
             // this is to prevent placed cells from instantly dying
@@ -268,7 +299,7 @@ void handle_keybinds(Board* cur_board) {
 
         // Set the color
         color(args->dead_color);
-        cur_color = rgb_to_int(args->dead_color);
+        cur_color = DEAD;
 
         // Fill the board right here and now for instant updates!
         for (int i = 0; i < cur_board->width * cur_board->height; i++) {
@@ -349,26 +380,28 @@ int main(int argc, char **argv) {
     const float total = cur_board.width * cur_board.height;
 
     // set up the ants
+    // have to define these outside of the if
     int num_ants;
     Ant* ants;
 
     if (args->flags & ANT) {
+        // instantiate ant-related values
+        // WIP, need custom input .txt file implementation
         num_ants = 1;
         ants = (Ant*)malloc(num_ants * sizeof(Ant));
         for (int i = 0; i < num_ants; i++) {
             ants[i] = (Ant){.x = cur_board.width/2+i, .y = cur_board.height/2+i, .direction = 0};
         }
-        init_ants(ants, 1, "RL");
+        init_ants(ants, 1, args->ant_rules);
     }
 
-    // define the colors as ints for X11
-    int dead_color_int = rgb_to_int(args->dead_color);
-    int alive_color_int = rgb_to_int(args->alive_color);
-    int dying_color_int = rgb_to_int(args->dying_color);
-
     // set the color to the background color
-    cur_color = dead_color_int;
-    color(args->dead_color);
+    int num_colors = 3;
+    RGB color_list[] = {args->dead_color, 
+                        args->alive_color, 
+                        args->dying_color}; // can add more potentially
+    color(color_list[cur_color]);
+    cur_color = DEAD;    
 
     // define iter count
     int iter_count = 0;
@@ -381,33 +414,26 @@ int main(int argc, char **argv) {
         /* DRAWING PORTION */
         // loop through our board and draw it
         for (int i = 0; i < cur_board.width * cur_board.height; i++) {
-            // check current cell's alive state
-            if (cur_board.pattern[i] == ALIVE && cur_color != alive_color_int) {
-                // if alive and we're not already on the fg color, switch to it
-                cur_color = alive_color_int;
-                color(args->alive_color);
+            // if the color has changed
+            if (cur_board.pattern[i] != cur_color) {
+                // update color accordingly
+                    // % num_colors to allow for ANT's variable number of states
+                cur_color = cur_board.pattern[i] % num_colors; 
+                color(color_list[cur_color]);
             }
-            else if (cur_board.pattern[i] == DYING && cur_color != rgb_to_int(args->dying_color)) {
-                // if dying and we're not already on the dying color, switch to it
-                cur_color = rgb_to_int(args->dying_color);
-                color(args->dying_color);
-            }
-            else if (cur_board.pattern[i] == DEAD) {
-                // if dead, increment dead count
+
+            // increment dead counter if needed
+            if (cur_color == DEAD) {
                 dead++;
-                if (cur_color != dead_color_int) {
-                    // if we're not already on the bg color, switch to it
-                    cur_color = dead_color_int;
-                    color(args->dead_color);
-                }
             }
 
             // fill the cell with whatever color we land on
             (*fill_func)(i % cur_board.width, i / cur_board.width, CELL_SIZE);
         }
+        
 
-        color(args->dead_color);
-        cur_color = dead_color_int;
+        color(color_list[DEAD]);
+        cur_color = DEAD;
         // fill one more row and col with bg to make sure we fill the whole screen
         for (int i = 0; i < cur_board.width; i++) {
             (*fill_func)(i, cur_board.height, CELL_SIZE);
@@ -419,11 +445,11 @@ int main(int argc, char **argv) {
         // Handle drawing ants over the now completed board
         if (args->flags & ANT) {
             // Loop through the ants and draw them
+            color(args->ant_color);
+            cur_color = -1; // dummy value to let us know we need to reset the color
             for (int ant_index = 0; ant_index < num_ants; ant_index++) {
-                color(args->dying_color);
                 Ant ant = ants[ant_index];
                 fill_func(ant.x, ant.y, CELL_SIZE);
-                cur_color = rgb_to_int(args->dying_color);
             }
         }
 
