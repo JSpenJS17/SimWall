@@ -55,6 +55,7 @@ bool is_lmb_pressed();
 HWND GetDesktopWorker();
 extern bool paused;
 extern bool add_mode;
+extern bool clear;
 
 
 #endif

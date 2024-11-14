@@ -30,6 +30,7 @@ static HBRUSH hBrush;
 // Global variables for the program
 bool paused = false;
 bool add_mode = false;
+bool clear = false;
 
 /* Functions */
 void fill_cell(int x, int y, int size) {
@@ -168,6 +169,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             case 3:  // Ctrl+Alt+A
                 add_mode = !add_mode;
+                break;
+
+            case 4:  // Ctrl+Alt+D
+                clear = true;
                 break;
         }
         //If not a hotkey message, pass it to the default handler
