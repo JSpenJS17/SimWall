@@ -1,4 +1,10 @@
-/* simwall.c
+/*
+Author: Pierce Lane, Chase Horner
+Class: EECS 581
+Assignment: Project 3
+Creation Date: 10/21/2024
+
+simwall.c
 Main driver code for the simwall project on Linux
 Heavily abstracted away into not-so-pretty libraries
 */

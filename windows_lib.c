@@ -1,7 +1,14 @@
-/* windows_lib.c 
+/*
+Author: Pierce Lane, Chase Horner
+Class: EECS 581
+Assignment: Project 3
+Creation Date: 10/21/2024
+
+windows_lib.c 
 Library file for the game of life displaying
 Will basically have some Windows API helpers that will be used in the main file
 */
+
 #ifndef WINDOWS_LIB
 #define WINDOWS_LIB
 
