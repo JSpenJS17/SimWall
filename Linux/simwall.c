@@ -19,13 +19,13 @@ Heavily abstracted away into not-so-pretty libraries
 #include "langtons_ant/langtons_ant.h"
 
 #define DAEMONIZE   1
-#define CIRCLE      1 << 1
-#define KEYBINDS    1 << 2
-#define BB          1 << 3
-#define CLEAR       1 << 4
-#define NO_RESTOCK  1 << 5
-#define SEEDS       1 << 6
-#define ANT         1 << 7
+#define CIRCLE      (1 << 1)
+#define KEYBINDS    (1 << 2)
+#define BB          (1 << 3)
+#define CLEAR       (1 << 4)
+#define NO_RESTOCK  (1 << 5)
+#define SEEDS       (1 << 6)
+#define ANT         (1 << 7)
 
 /* General purpose cmd-line args 
 Can add more later if needed */
@@ -84,6 +84,9 @@ Args* parse_args(int argc, char **argv) {
     // define defaults
     Args* args = malloc(sizeof(Args));
     memset(args, 0, sizeof(Args));
+
+    // define all the simulation flags, used for mutual exclusion later
+    int all_sims = BB | SEEDS | ANT;
 
     // set defaults
     args->flags |= KEYBINDS; // set keybinds to default to on
@@ -213,15 +216,15 @@ Args* parse_args(int argc, char **argv) {
         }
         // brians brain
         else if (strcmp(argv[i], "-bb") == 0) {
-            args->flags |= BB;
+            args->flags = (args->flags & ~all_sims) | BB;
         }
         // seeds
         else if (strcmp(argv[i], "-seeds") == 0) {
-            args->flags |= SEEDS;
+            args->flags = (args->flags & ~all_sims) | SEEDS;
         }
         // langton's ant
         else if (strcmp(argv[i], "-ant") == 0) {
-            args->flags |= ANT;
+            args->flags = (args->flags & ~all_sims) | ANT;
             args->flags |= NO_RESTOCK;
         }
         // clear start
@@ -351,7 +354,7 @@ int main(int argc, char **argv) {
         gen_next = seeds_gen_next;
         gen_random = seeds_gen_random;
         add_random = seeds_add_life;
-    } else if (args->flags & ANT) {
+    } else if (args->flags & ANT) { 
         gen_next = ant_gen_next;
         gen_random = ant_gen_random;
         add_random = ant_add_life;
