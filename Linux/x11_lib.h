@@ -25,28 +25,27 @@ typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned long ulong;
 
-/* Generic RGB struct */
-struct RGB {
+/* Generic ARGB struct */
+typedef struct ARGB {
+    ushort a;
     ushort r;
     ushort g;
     ushort b;
-};
-typedef struct RGB RGB;
+} ARGB;
 
 /* Generic POS struct */
-struct POS {
+typedef struct POS {
     int x;
     int y;
-};
-typedef struct POS POS;
+} POS;
 
 /* Function prototypes */
 void x11_cleanup();
 void fill_cell(int x, int y, size_t size);
 void fill_circle(int x, int y, size_t size);
-void color(RGB rgb);
-int rgb_to_int(RGB rgb);
-Display* window_setup(RGB bg_color);
+void color(ARGB argb);
+int argb_to_int(ARGB argb);
+Display* window_setup(ARGB bg_color);
 int screen_width();
 int screen_height();
 void raise_window();

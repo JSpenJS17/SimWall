@@ -30,7 +30,7 @@ Heavily abstracted away into not-so-pretty libraries
 /* General purpose cmd-line args 
 Can add more later if needed */
 struct Args {
-    RGB alive_color, dead_color, dying_color, ant_color;
+    ARGB alive_color, dead_color, dying_color, ant_color;
     uchar flags;
     char* ant_rules;
     float framerate;
@@ -56,15 +56,15 @@ void usage() {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -h, --help: Show this help message\n");
     fprintf(stderr, "  -D, -d, --daemonize: Daemonize the process\n");
-    fprintf(stderr, "  -dead 000000: Set the dead cell color\n");
-    fprintf(stderr, "  -alive FFFFFF: Set the alive cell color\n");
-    fprintf(stderr, "  -dying 808080: Set the dying cell color\n");
+    fprintf(stderr, "  -dead FF000000: Set the dead cell color (ARGB)\n");
+    fprintf(stderr, "  -alive FFFFFFFF: Set the alive cell color (ARGB)\n");
+    fprintf(stderr, "  -dying 808080FF: Set the dying cell color (ARGB)\n");
     fprintf(stderr, "  -fps 10.0: Set the framerate\n");
     fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n");
     fprintf(stderr, "  -seeds: Run Seeds instead of Game of Life\n");
     fprintf(stderr, "  -ant: Run Langton's Ant instead of Game of Life\n");
     fprintf(stderr, "    -ant_rules RLCU: Set the ant ruleset\n");
-    fprintf(stderr, "    -ant_color FF0000: Set the ant color\n");
+    fprintf(stderr, "    -ant_color FFFF0000: Set the ant color (ARGB)\n");
     //TODO: Implement these
     // fprintf(stderr, "    -color_list 000000 808080 FFFFFF ... : Set the color list for states in Langton's Ant")
     // fprintf(stderr, "    -ants ants.txt: Give input ant locations and directions in a file.\n       Format: x y direction\\n\n");
@@ -73,7 +73,7 @@ void usage() {
     fprintf(stderr, "  -nk: Disable keybinds\n");
     fprintf(stderr, "  -nr: No restocking if board is too empty\n");
     fprintf(stderr, "  -clear: Start with a clear board. Includes -nr\n");
-    fprintf(stderr, "Example: simwall -dead FF00FF -alive 00FF00 -fps 7.5\n");
+    fprintf(stderr, "Example: simwall -dead 00FF00FF -alive FF00FF00 -fps 7.5\n");
     exit(1);
 }
 
@@ -91,12 +91,23 @@ Args* parse_args(int argc, char **argv) {
     // set defaults
     args->flags |= KEYBINDS; // set keybinds to default to on
     args->framerate = 10.0;
+    
+    args->alive_color.a = 255;
     args->alive_color.r = 255;
     args->alive_color.g = 255;
     args->alive_color.b = 255;
+
+    args->dead_color.a = 255;
+    args->dead_color.r = 0;
+    args->dead_color.g = 0;
+    args->dead_color.b = 0;
+
+    args->dying_color.a = 255;
     args->dying_color.r = 128;
     args->dying_color.g = 128;
     args->dying_color.b = 128;
+
+    args->ant_color.a = 255;
     args->ant_color.r = 255;
     args->ant_color.g = 0;
     args->ant_color.b = 0;
@@ -125,14 +136,14 @@ Args* parse_args(int argc, char **argv) {
                 fprintf(stderr, "Not enough arguments for -dead\n");
                 usage();
             }
-            // convert the hex to RGB
+            // convert the hex to ARGB
             char* dead_color_str = argv[i+1];
-            if (strlen(dead_color_str) != 6) {
+            if (strlen(dead_color_str) != 8) {
                 fprintf(stderr, "Invalid color: %s\n", dead_color_str);
                 usage();
             }
-            // Use sscanf to convert hex to RGB
-            sscanf(dead_color_str, "%2hx%2hx%2hx", &args->dead_color.r, &args->dead_color.g, &args->dead_color.b);
+            // Use sscanf to convert hex to ARGB
+            sscanf(dead_color_str, "%2hx%2hx%2hx%2hx", &args->dead_color.a, &args->dead_color.r, &args->dead_color.g, &args->dead_color.b);
             i++; // increment i to simulate parsing the hex string
         }
         // dying color
@@ -141,14 +152,14 @@ Args* parse_args(int argc, char **argv) {
                 fprintf(stderr, "Not enough arguments for -dying\n");
                 usage();
             }
-            // convert the hex to RGB
+            // convert the hex to ARGB
             char* dying_color_str = argv[i+1];
-            if (strlen(dying_color_str) != 6) {
+            if (strlen(dying_color_str) != 8) {
                 fprintf(stderr, "Invalid color: %s\n", dying_color_str);
                 usage();
             }
-            // Use sscanf to convert hex to RGB
-            sscanf(dying_color_str, "%2hx%2hx%2hx", &args->dying_color.r, &args->dying_color.g, &args->dying_color.b);
+            // Use sscanf to convert hex to ARGB
+            sscanf(dying_color_str, "%2hx%2hx%2hx%2hx", &args->dying_color.a, &args->dying_color.r, &args->dying_color.g, &args->dying_color.b);
             i++; // increment i to simulate parsing the hex string
         }
         // alive color
@@ -157,14 +168,14 @@ Args* parse_args(int argc, char **argv) {
                 fprintf(stderr, "Not enough arguments for -alive\n");
                 usage();
             }
-            // convert the hex to RGB
+            // convert the hex to ARGB
             char* alive_color_str = argv[i+1];
-            if (strlen(alive_color_str) != 6) {
+            if (strlen(alive_color_str) != 8) {
                 fprintf(stderr, "Invalid color: %s\n", alive_color_str);
                 usage();
             }
-            // Use sscanf to convert hex to RGB
-            sscanf(alive_color_str, "%2hx%2hx%2hx", &args->alive_color.r, &args->alive_color.g, &args->alive_color.b);
+            // Use sscanf to convert hex to ARGB
+            sscanf(alive_color_str, "%2hx%2hx%2hx%2hx", &args->alive_color.a, &args->alive_color.r, &args->alive_color.g, &args->alive_color.b);
             i++; // increment i to simulate parsing the hex string
         } 
         // framerate
@@ -200,14 +211,14 @@ Args* parse_args(int argc, char **argv) {
                 fprintf(stderr, "Not enough arguments for -ant_color\n");
                 usage();
             }
-            // convert the hex to RGB
+            // convert the hex to ARGB
             char* ant_color_str = argv[i+1];
-            if (strlen(ant_color_str) != 6) {
+            if (strlen(ant_color_str) != 8) {
                 fprintf(stderr, "Invalid color: %s\n", ant_color_str);
                 usage();
             }
-            // Use sscanf to convert hex to RGB
-            sscanf(ant_color_str, "%2hx%2hx%2hx", &args->ant_color.r, &args->ant_color.g, &args->ant_color.b);
+            // Use sscanf to convert hex to ARGB
+            sscanf(ant_color_str, "%2hx%2hx%2hx%2hx", &args->ant_color.a, &args->ant_color.r, &args->ant_color.g, &args->ant_color.b);
             i++; // increment i to simulate parsing the hex string
         }
         // disable keybinds
@@ -400,7 +411,7 @@ int main(int argc, char **argv) {
 
     // set the color to the background color
     int num_colors = 3;
-    RGB color_list[] = {args->dead_color, 
+    ARGB color_list[] = {args->dead_color, 
                         args->alive_color, 
                         args->dying_color}; // can add more potentially
     color(color_list[cur_color]);

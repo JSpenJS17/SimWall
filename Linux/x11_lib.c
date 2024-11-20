@@ -44,14 +44,14 @@ int screen_height() {
     return DisplayHeight(display, screen);
 }
 
-int rgb_to_int(RGB rgb) {
-    /* Converts an RGB struct to an int for X11 compatibility */
-    return rgb.r << 16 | rgb.g << 8 | rgb.b;
+int argb_to_int(ARGB argb) {
+    /* Converts an ARGB struct to an int for X11 compatibility */
+    return argb.a << 24 | argb.r << 16 | argb.g << 8 | argb.b;
 }
 
-void color(RGB rgb) {
-    /* Sets foreground paint color using RGB struct */
-    XSetForeground(display, gc, rgb_to_int(rgb));
+void color(ARGB argb) {
+    /* Sets foreground paint color using ARGB struct */
+    XSetForeground(display, gc, argb_to_int(argb));
 }
 
 void raise_window() {
@@ -164,17 +164,33 @@ Window* get_window() {
     return &window;
 }
 
-Display* window_setup(RGB bg_color) {
+Display* window_setup(ARGB bg_color) {
     /* Main helper function to run here. Will do all the window setup
     Returns up a pointer to the display if you want it */
     display = XOpenDisplay(NULL);
     screen = DefaultScreen(display);
-    Window root = DefaultRootWindow(display);
+    Window root = RootWindow(display, screen);
+
+    // Find an ARGB visual for transparency
+    XVisualInfo vinfo;
+    if (!XMatchVisualInfo(display, screen, 32, TrueColor, &vinfo)) {
+        fprintf(stderr, "No ARGB visual found.\n");
+        return NULL;
+    }
+
+    // Create a colormap
+    Colormap colormap = XCreateColormap(display, root, vinfo.visual, AllocNone);
+
+    // Set window attributes
+    XSetWindowAttributes attrs;
+    attrs.colormap = colormap;
+    attrs.background_pixel = 0;
+    attrs.border_pixel = 0;
 
     // Create the window
-    window = XCreateSimpleWindow(display, root, 0, 0, 
-                                 screen_width(), screen_height(), 
-                                 1, rgb_to_int(bg_color), rgb_to_int(bg_color));
+    window = XCreateWindow(display, root, 0, 0, screen_width(), screen_height(), 0,
+                                  vinfo.depth, InputOutput, vinfo.visual,
+                                  CWColormap | CWBackPixel | CWBorderPixel, &attrs);
 
     // Set the window type to desktop
     Atom window_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
@@ -186,7 +202,7 @@ Display* window_setup(RGB bg_color) {
     XMapWindow(display, window);
 
     // Initialize the graphics context
-    gc = XCreateGC(display, window, 0, 0);
+    gc = XCreateGC(display, window, 0, NULL);
 
     // Lower the window below everything and disable input
     lower_window();
