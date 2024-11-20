@@ -50,6 +50,11 @@ bool add_mode = false;
 void (*fill_func)(int, int, size_t); // x, y, size
 Args* args;
 int cur_color;
+ARGB* color_list;
+
+// Langton's Ant specific globals
+size_t num_colors;
+size_t num_rules;
 
 void usage() {
     fprintf(stderr, "Usage: simwall [options]\n");
@@ -66,7 +71,7 @@ void usage() {
     fprintf(stderr, "    -ant_rules RLCU: Set the ant ruleset\n");
     fprintf(stderr, "    -ant_color FFFF0000: Set the ant color (RGBA)\n");
     //TODO: Implement these
-    // fprintf(stderr, "    -color_list 000000FF 808080FF FFFFFFFF ... : Set the color list for states in Langton's Ant (RGBA)")
+    fprintf(stderr, "    -color_list 000000FF 808080FF FFFFFFFF ... : Set the color list for states in Langton's Ant (RGBA)");
     // fprintf(stderr, "    -ants ants.txt: Give input ant locations and directions in a file.\n       Format: x y direction\\n\n");
     fprintf(stderr, "  -c: Draw circles instead of a squares\n");
     fprintf(stderr, "  -s 25: Set the cell size in pixels\n");
@@ -205,7 +210,7 @@ Args* parse_args(int argc, char **argv) {
             args->ant_rules = argv[i+1];
             i += 1;
         }
-        // langton's ant color
+        // langton's ant ant color
         else if (strcmp(argv[i], "-ant_color") == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -ant_color\n");
@@ -220,6 +225,28 @@ Args* parse_args(int argc, char **argv) {
             // Use sscanf to convert hex to ARGB
             sscanf(ant_color_str, "%2hx%2hx%2hx%2hx", &args->ant_color.r, &args->ant_color.g, &args->ant_color.b, &args->ant_color.a);
             i++; // increment i to simulate parsing the hex string
+        }
+        else if (strcmp(argv[i], "-color_list") == 0) {
+            // Find the number of colors
+            num_colors = 0;
+            for (int j = i + 1; j < argc; j++) {
+                if (argv[j][0] == '-') {
+                    break;
+                }
+                num_colors++;
+            }
+            // Allocate space for the colors
+            color_list = (ARGB*)malloc(num_colors * sizeof(ARGB));
+            // Parse the colors
+            for (int j = 0; j < num_colors; j++) {
+                char* color_str = argv[i+j+1];
+                if (strlen(color_str) != 8) {
+                    fprintf(stderr, "Invalid color: %s\n", color_str);
+                    usage();
+                }
+                sscanf(color_str, "%2hx%2hx%2hx%2hx", &color_list[j].r, &color_list[j].g, &color_list[j].b, &color_list[j].a);
+            }
+            i += num_colors;
         }
         // disable keybinds
         else if (strcmp(argv[i], "-nk") == 0) {
@@ -410,10 +437,21 @@ int main(int argc, char **argv) {
     }
 
     // set the color to the background color
-    int num_colors = 3;
-    ARGB color_list[] = {args->dead_color, 
-                        args->alive_color, 
-                        args->dying_color}; // can add more potentially
+    if (args->flags & ANT) {
+        // do ant things
+        if (!color_list) {
+            // Error out if no color list given
+            fprintf(stderr, "No color list given for Langton's Ant\n");
+            exit(1);
+        } 
+    } else {
+        num_colors = 3;
+        color_list = (ARGB*)malloc(3 * sizeof(ARGB));
+        color_list[0] = args->dead_color;
+        color_list[1] = args->alive_color;
+        color_list[2] = args->dying_color;
+    }
+    
     color(color_list[cur_color]);
     cur_color = DEAD;    
 
