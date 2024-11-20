@@ -184,7 +184,7 @@ Display* window_setup(ARGB bg_color) {
     // Set window attributes
     XSetWindowAttributes attrs;
     attrs.colormap = colormap;
-    attrs.background_pixel = 0;
+    attrs.background_pixel = argb_to_int(bg_color);
     attrs.border_pixel = 0;
 
     // Create the window

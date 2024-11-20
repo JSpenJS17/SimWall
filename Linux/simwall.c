@@ -56,24 +56,24 @@ void usage() {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -h, --help: Show this help message\n");
     fprintf(stderr, "  -D, -d, --daemonize: Daemonize the process\n");
-    fprintf(stderr, "  -dead FF000000: Set the dead cell color (ARGB)\n");
-    fprintf(stderr, "  -alive FFFFFFFF: Set the alive cell color (ARGB)\n");
-    fprintf(stderr, "  -dying 808080FF: Set the dying cell color (ARGB)\n");
+    fprintf(stderr, "  -dead 000000FF: Set the dead cell color (RGBA)\n");
+    fprintf(stderr, "  -alive FFFFFFFF: Set the alive cell color (RGBA)\n");
+    fprintf(stderr, "  -dying 808080FF: Set the dying cell color (RGBA)\n");
     fprintf(stderr, "  -fps 10.0: Set the framerate\n");
     fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n");
     fprintf(stderr, "  -seeds: Run Seeds instead of Game of Life\n");
     fprintf(stderr, "  -ant: Run Langton's Ant instead of Game of Life\n");
     fprintf(stderr, "    -ant_rules RLCU: Set the ant ruleset\n");
-    fprintf(stderr, "    -ant_color FFFF0000: Set the ant color (ARGB)\n");
+    fprintf(stderr, "    -ant_color FFFF0000: Set the ant color (RGBA)\n");
     //TODO: Implement these
-    // fprintf(stderr, "    -color_list 000000 808080 FFFFFF ... : Set the color list for states in Langton's Ant")
+    // fprintf(stderr, "    -color_list 000000FF 808080FF FFFFFFFF ... : Set the color list for states in Langton's Ant (RGBA)")
     // fprintf(stderr, "    -ants ants.txt: Give input ant locations and directions in a file.\n       Format: x y direction\\n\n");
     fprintf(stderr, "  -c: Draw circles instead of a squares\n");
     fprintf(stderr, "  -s 25: Set the cell size in pixels\n");
     fprintf(stderr, "  -nk: Disable keybinds\n");
     fprintf(stderr, "  -nr: No restocking if board is too empty\n");
     fprintf(stderr, "  -clear: Start with a clear board. Includes -nr\n");
-    fprintf(stderr, "Example: simwall -dead 00FF00FF -alive FF00FF00 -fps 7.5\n");
+    fprintf(stderr, "Example: simwall -dead FF00FFFF -alive FFFF00FF -fps 7.5\n");
     exit(1);
 }
 
@@ -143,7 +143,7 @@ Args* parse_args(int argc, char **argv) {
                 usage();
             }
             // Use sscanf to convert hex to ARGB
-            sscanf(dead_color_str, "%2hx%2hx%2hx%2hx", &args->dead_color.a, &args->dead_color.r, &args->dead_color.g, &args->dead_color.b);
+            sscanf(dead_color_str, "%2hx%2hx%2hx%2hx", &args->dead_color.r, &args->dead_color.g, &args->dead_color.b, &args->dead_color.a);
             i++; // increment i to simulate parsing the hex string
         }
         // dying color
@@ -159,7 +159,7 @@ Args* parse_args(int argc, char **argv) {
                 usage();
             }
             // Use sscanf to convert hex to ARGB
-            sscanf(dying_color_str, "%2hx%2hx%2hx%2hx", &args->dying_color.a, &args->dying_color.r, &args->dying_color.g, &args->dying_color.b);
+            sscanf(dying_color_str, "%2hx%2hx%2hx%2hx", &args->dying_color.r, &args->dying_color.g, &args->dying_color.b, &args->dying_color.a);
             i++; // increment i to simulate parsing the hex string
         }
         // alive color
@@ -175,7 +175,7 @@ Args* parse_args(int argc, char **argv) {
                 usage();
             }
             // Use sscanf to convert hex to ARGB
-            sscanf(alive_color_str, "%2hx%2hx%2hx%2hx", &args->alive_color.a, &args->alive_color.r, &args->alive_color.g, &args->alive_color.b);
+            sscanf(alive_color_str, "%2hx%2hx%2hx%2hx", &args->alive_color.r, &args->alive_color.g, &args->alive_color.b, &args->alive_color.a);
             i++; // increment i to simulate parsing the hex string
         } 
         // framerate
@@ -218,7 +218,7 @@ Args* parse_args(int argc, char **argv) {
                 usage();
             }
             // Use sscanf to convert hex to ARGB
-            sscanf(ant_color_str, "%2hx%2hx%2hx%2hx", &args->ant_color.a, &args->ant_color.r, &args->ant_color.g, &args->ant_color.b);
+            sscanf(ant_color_str, "%2hx%2hx%2hx%2hx", &args->ant_color.r, &args->ant_color.g, &args->ant_color.b, &args->ant_color.a);
             i++; // increment i to simulate parsing the hex string
         }
         // disable keybinds
