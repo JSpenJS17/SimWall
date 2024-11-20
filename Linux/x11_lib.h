@@ -60,6 +60,5 @@ void focus_window();
 void unfocus_window();
 POS get_mouse_pos();
 bool is_lmb_pressed();
-void display_image(char* path, int x, int y);
 
 #endif
