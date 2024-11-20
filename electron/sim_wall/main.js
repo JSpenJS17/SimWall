@@ -3,6 +3,7 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow } = require('electron')
 const path = require('node:path')
+const { contextIsolated } = require('node:process')
 
 const createWindow = () => {
   // Create the browser window.
@@ -10,7 +11,9 @@ const createWindow = () => {
     width: 800,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: true,
+      contextIsolation: false,
     }
   })
 
@@ -39,4 +42,4 @@ app.on('window-all-closed', () => {
 })
 
 // Normal main code below, if needed. 
-// *Note* Functions that alter the DOM should be in renderer.js
+// *Note* Functions that alter the DOM should be in renderer.js or the respective .js files

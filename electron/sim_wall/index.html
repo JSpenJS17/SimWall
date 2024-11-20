@@ -1,32 +1,21 @@
 <!--index.html-->
 <!DOCTYPE html>
-<html lang="en">
-
+<html>
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="bulma.css">
+        <link rel="stylesheet" href="./bulma.css">
         <title>SimWall</title>
     </head>
   
     <body>
 
-    <h1 class="has-text-centered title mt-5">Welcome to SimWall!</h1>
+        <div id="contentDiv">
 
-    <div class="columns is-centered">
-        <div class="column is-narrow is-flex is-flex-direction-column">
-            <button class="button mb-2" id="gol">Game of Life</button>
-            <button class="button mb-2" id ="bb">Brian's Brain</button>
-            <button class="button mb-2" id="seeds">Seeds</button>
-            <button class="button mb-2" id="la">Langton's Ant</button>
-            <button class="button is-success">Go!</button>
+        <!--Preloader fills this div with menu.html and then it is manipulated with functions in a typical SPA manner-->
+
         </div>
-    </div>
-
-
-    <!-- You can also require other files to run in this process. Example: -->
-    <script src="./renderer.js"></script>
 
     </body>
+
+    <script src="renderer.js"></script>
 
 </html>
