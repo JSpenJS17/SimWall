@@ -380,8 +380,8 @@ int main(int argc, char **argv) {
 
     // GAME TIME!!!    
     Board cur_board;
-    cur_board.height = screen_height() / CELL_SIZE;
-    cur_board.width = screen_width() / CELL_SIZE;
+    cur_board.height = screen_height() / CELL_SIZE + 1;
+    cur_board.width = screen_width() / CELL_SIZE + 1;
     
     // Set up the board with random start
     cur_board.pattern = (*gen_random)(cur_board.width, cur_board.height, 20);
@@ -473,11 +473,10 @@ int main(int argc, char **argv) {
         free(cur_board.pattern);
         cur_board.pattern = next_pattern;
 
-        // increment iter count
-        iter_count++;
-
         // check if we need to add more cells
         if (args->flags & SEEDS) {
+            // increment iter count
+            iter_count++;
             // if iter count too high
             if (iter_count >= 100 && !(args->flags & NO_RESTOCK)) {
                 int* next_pattern = gen_random(cur_board.width, cur_board.height, 20);
