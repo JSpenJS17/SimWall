@@ -90,6 +90,27 @@ void cleanup() {
     exit(0);
 }
 
+int count_lines(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Failed to open file");
+        return -1; // Indicate error
+    }
+
+    int line_count = 0;
+    char ch;
+
+    // Read file character by character
+    while ((ch = fgetc(file)) != EOF) {
+        if (ch == '\n') {
+            line_count++;
+        }
+    }
+
+    fclose(file);
+    return line_count;
+}
+
 Args* parse_args(int argc, char **argv) {
     /* Parses the args for the program.
     Takes argc, argv from cmdline.
@@ -235,6 +256,8 @@ Args* parse_args(int argc, char **argv) {
         }
         // ants file
         else if (strcmp(argv[i], "-ants") == 0) {
+            // free the default ant
+            free(args->ants);
             if (i + 1 >= argc) {
                 fprintf(stderr, "Not enough arguments for -ants\n");
                 usage();
@@ -247,24 +270,29 @@ Args* parse_args(int argc, char **argv) {
             }
             char line[256];
             // read the number of ants
-            args->num_ants = 1;
+            args->num_ants = count_lines(argv[i+1]);
             // allocate space for the ants
             args->ants = (Ant*)malloc(args->num_ants * sizeof(Ant));
             // read the ants
             for (int j = 0; j < args->num_ants; j++) {
                 Ant ant;
                 char line[512];
+                // read in a line
                 fgets(line, 512, ants_file);
+                // parse the line
                 int num = sscanf(line, "%d %d %d %s %2hx%2hx%2hx%2hx\n",
                             &ant.x, &ant.y, (int*)&ant.direction,
                             ant.ruleset,
                             &ant.color.r, &ant.color.g, &ant.color.b, &ant.color.a);
+                // check for errors (lightly, not a full check)
                 if (num != 8) {
                     fprintf(stderr, "Invalid ant line: %s\n", line);
                     usage();
                 }
+                // add the ant to the list
                 args->ants[j] = ant;
             }
+            // remember to close the file
             fclose(ants_file);
             i += 1;
         }
@@ -441,14 +469,20 @@ int main(int argc, char **argv) {
     float dead = 0;
     const float total = cur_board.width * cur_board.height;
 
-    if (args->flags & ANT) {
-        // Initialize the ants
-        init_ants(args->ants, args->num_ants);
-    }
-
     // set the color to the background color
     if (args->flags & ANT) {
         // do ant things
+        if (!args->ants) {
+            // Fill in default ant
+            args->num_ants = 1;
+            args->ants = (Ant*)malloc(sizeof(Ant));
+            args->ants[0].x = cur_board.width / 2;
+            args->ants[0].y = cur_board.height / 2;
+            args->ants[0].direction = UP;
+            strcpy(args->ants[0].ruleset, "RL");
+            args->ants[0].color = (ARGB){255, 255, 0, 0};
+        }
+        init_ants(args->ants, args->num_ants);
         if (!color_list) {
             // Error out if no color list given
             fprintf(stderr, "No color list given for Langton's Ant\n");
