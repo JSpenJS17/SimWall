@@ -52,7 +52,6 @@ ARGB* color_list;
 
 // Langton's Ant specific globals
 size_t num_colors;
-size_t num_rules;
 
 void usage() {
     fprintf(stderr, "Usage: simwall [options]\n");
@@ -268,7 +267,6 @@ Args* parse_args(int argc, char **argv) {
                 fprintf(stderr, "Could not open file: %s\n", argv[i+1]);
                 usage();
             }
-            char line[256];
             // read the number of ants
             args->num_ants = count_lines(argv[i+1]);
             // allocate space for the ants
@@ -416,7 +414,7 @@ int main(int argc, char **argv) {
     }
 
     // Initialize the window
-    Display* display = window_setup(args->dead_color);
+    window_setup(args->dead_color);
     
     // Set up add, pause, delete (clear), and quit keybinds
     if (args->flags & KEYBINDS) {
@@ -473,7 +471,7 @@ int main(int argc, char **argv) {
     if (args->flags & ANT) {
         // do ant things
         if (!args->ants) {
-            // Fill in default ant
+            // Fill in default ant if none given
             args->num_ants = 1;
             args->ants = (Ant*)malloc(sizeof(Ant));
             args->ants[0].x = cur_board.width / 2;
@@ -482,12 +480,38 @@ int main(int argc, char **argv) {
             strcpy(args->ants[0].ruleset, "RL");
             args->ants[0].color = (ARGB){255, 255, 0, 0};
         }
+        // Initialize the ants
         init_ants(args->ants, args->num_ants);
-        if (!color_list) {
-            // Error out if no color list given
-            fprintf(stderr, "No color list given for Langton's Ant\n");
+
+        // Find the longest ruleset
+        size_t max_rules = 0;
+        for (int i = 0; i < args->num_ants; i++) {
+            size_t len = strlen(args->ants[i].ruleset);
+            if (len > max_rules) {
+                max_rules = len;
+            }
+        }
+
+        // generate a color list if none given
+        if (num_colors == 0) {
+            // Set correct number of colors
+            num_colors = max_rules;
+            // Alloc them
+            color_list = (ARGB*)malloc(max_rules * sizeof(ARGB));
+            // Generate them by stepping through the RGB spectrum in equal steps
+                // this will create a number of shades of gray
+            int step_size = 256 / max_rules;
+            // Set the colors
+            for (int i = 0; i < max_rules; i++) {
+                color_list[i] = (ARGB){255, i * step_size, i * step_size, i * step_size};
+            }
+        }
+
+        // Make sure the number of colors given is >= the number of states
+        if (num_colors < max_rules) {
+            fprintf(stderr, "Not enough colors given for Langton's Ant\n");
             exit(1);
-        } 
+        }
     } else {
         num_colors = 3;
         color_list = (ARGB*)malloc(3 * sizeof(ARGB));

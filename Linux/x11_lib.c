@@ -79,13 +79,6 @@ void flush() {
     XFlush(display);
 }
 
-static void disable_input(Window in_win) {
-    /* Disables the input region of a specific window */
-    Region region = XCreateRegion();
-    XShapeCombineRegion(display, in_win, ShapeInput, 0, 0, region, ShapeSet);
-    XDestroyRegion(region);
-}
-
 void x11_cleanup() {
     /* Cleans everything up, be sure to call when done */
     XFreeGC(display, gc);

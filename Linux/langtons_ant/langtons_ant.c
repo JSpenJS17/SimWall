@@ -40,6 +40,9 @@ int* ant_gen_next(int* grid, int width, int height) {
             case RIGHT: ants[i].x++; break;
             case DOWN: ants[i].y++; break;
             case LEFT: ants[i].x--; break;
+            default:
+                fprintf(stderr, "Invalid direction\n");
+                exit(1);
         }
         
         // Wrap around edges
