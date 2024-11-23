@@ -15,16 +15,15 @@ Langton's ant
 
 // Globals to let this be imported as the others are
 static int num_ants;
-static char* ruleset;
 static Ant* ants;
 
 int* ant_gen_next(int* grid, int width, int height) {
     for (int i = 0; i < num_ants; i++) {
         int current_index = ants[i].y * width + ants[i].x;
-        char current_rule = ruleset[grid[current_index]];
+        char current_rule = ants[i].ruleset[grid[current_index]];
         
         // Update grid state
-        grid[current_index] = (grid[current_index] + 1) % strlen(ruleset);
+        grid[current_index] = (grid[current_index] + 1) % strlen(ants[i].ruleset);
         
         // Update direction
         if (current_rule == 'L') {
@@ -46,16 +45,14 @@ int* ant_gen_next(int* grid, int width, int height) {
         // Wrap around edges
         ants[i].x = (ants[i].x + width) % width;
         ants[i].y = (ants[i].y + height) % height;
-
     }
     int* new_grid = (int*)malloc(width * height * sizeof(int));
     memcpy(new_grid, grid, width * height * sizeof(int));
     return new_grid;
 }
 
-void init_ants(Ant* inp_ants, int inp_num_ants, char* inp_ruleset) {
+void init_ants(Ant* inp_ants, int inp_num_ants) {
     ants = inp_ants;
-    ruleset = inp_ruleset;
     num_ants = inp_num_ants;
 }
 

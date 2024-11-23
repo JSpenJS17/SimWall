@@ -25,13 +25,16 @@ typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned long ulong;
 
+#ifndef ARGB_S
+#define ARGB_S
 /* Generic ARGB struct */
 typedef struct ARGB {
-    ushort a;
-    ushort r;
-    ushort g;
-    ushort b;
+    unsigned short a;
+    unsigned short r;
+    unsigned short g;
+    unsigned short b;
 } ARGB;
+#endif
 
 /* Generic POS struct */
 typedef struct POS {
