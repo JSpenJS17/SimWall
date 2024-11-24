@@ -30,7 +30,7 @@ Link Langton's Ant
 | Cell Size       | `-s`           | 25            | Set the cell size in pixels                                                 |
 | Disable Keybinds| `-nk`          | False         |                                                                             |
 | No Restocking   | `-nr`          | False         |                                                                             |
-| Start with Clear Board | `-clear` | False         | Includes `-nr`                                                              |
+| Start with Clear Board | `-clear`| False         | Includes `-nr`                                                              |
 | Command Help    | `-h`           | False         | Print command line flag instructions                                        |
 
 - Seeds: 100 iterations reset
