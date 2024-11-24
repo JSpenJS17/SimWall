@@ -17,6 +17,75 @@ import Foundation
  A lot of this is kinda janky, but it works and allows for easy use of same backend across C and Swift
 */
 
+// ANT
+
+import SwiftUI
+
+struct Ant {
+    var x: Int32
+    var y: Int32
+    var direction: Int32
+    var ruleset: String
+    var color : Color
+}
+
+func antGenNext(pattern: [Int32], width: Int, height: Int, ants: inout [Ant]) -> [Int32]? {
+    guard pattern.count == width * height else {
+        print("Invalid grid dimensions")
+        return nil
+    }
+    
+    // Make a mutable copy of the grid
+    var newGrid = pattern
+
+    // Iterate over each ant
+    for i in 0..<ants.count {
+        let ant = ants[i]
+        let currentIndex = Int(ant.y) * width + Int(ant.x)
+        
+        // Ensure the ant is within bounds
+        guard currentIndex >= 0 && currentIndex < newGrid.count else {
+            print("Ant is out of bounds")
+            return nil
+        }
+
+        // Apply the ruleset to determine the ant's new state
+        let currentCellState = newGrid[currentIndex]
+        let ruleIndex = Int(currentCellState) % ant.ruleset.count
+        let currentRule = ant.ruleset[ant.ruleset.index(ant.ruleset.startIndex, offsetBy: ruleIndex)]
+        
+        // Update the grid state
+        newGrid[currentIndex] = (currentCellState + 1) % Int32(ant.ruleset.count)
+
+        // Update the ant's direction based on the rule
+        switch currentRule {
+        case "L":
+            ants[i].direction = (ants[i].direction + 3) % 4 // Turn left
+        case "R":
+            ants[i].direction = (ants[i].direction + 1) % 4 // Turn right
+        case "U":
+            ants[i].direction = (ants[i].direction + 2) % 4 // Turn around
+        default:
+            print("Invalid rule")
+        }
+
+        // Move the ant
+        switch ants[i].direction {
+        case 0: ants[i].y -= 1 // Move up
+        case 1: ants[i].x += 1 // Move right
+        case 2: ants[i].y += 1 // Move down
+        case 3: ants[i].x -= 1 // Move left
+        default:
+            print("Invalid direction")
+        }
+
+        // Wrap the ant's position around the grid edges
+        ants[i].x = (ants[i].x + Int32(width)) % Int32(width)
+        ants[i].y = (ants[i].y + Int32(height)) % Int32(height)
+    }
+
+    return newGrid
+}
 // SEEDS
 
 func seedsGenNext(pattern: [Int32], width: Int, height: Int) -> [Int32]? {
@@ -127,83 +196,4 @@ func swiftArrayToCArray(board2D: [[Int]], width: Int, height: Int) -> [Int32] {
     return pattern // Return the [Int32] object
 }
 
-// HELPER FUNCTIONS
 
-func makeSmallBoard(width: Int, height: Int) -> [[Int]] {
-    // Function to make a board that only contains random values in the inner 6x6
-    
-    var board: [[Int]] = [] // Makes a blank board
-    for row in 0..<height { // Iterates for each row we should end up
-        board.append([]) // Appends a new row to the grid for the row
-        for col in 0..<width { // Goes through each column that should contain a value in the row
-            if (row >= ((height/2) - 3) && row <= ((height/2) + 3)) && (col >= ((width/2) - 3) && col <= ((width/2) + 3)) { // If we're in the inner 6x6
-                board[row].append(Int.random(in: 0...1)) // Add either a 1 or 0
-            } else { // Otherwise
-                board[row].append(0) // Make it blank
-            }
-        }
-    }
-    return board // Return the board we built
-}
-
-func makeEmptyBoard(width: Int, height: Int) -> [[Int]] {
-    // Make an empty board of given height and width
-    var board: [[Int]] = [] // New board to write values into
-    for row in 0..<height { // Goes through each row
-        board.append([]) // Adds it to the board
-        for col in 0..<width { // Goes for each value that it should have in each row
-            board[row].append(0) // Adds 0s for the blank board
-        }
-    }
-    return board // Returns the board
-}
-
-func file_to_board(path: String, width: Int, height: Int) -> [[Int]] {
-    // Function to take a path to a file and output a board with the pattern in that file in the middle of the board
-    
-    var board: [[Int]] = [] // Board to fill in
-    let read_in = read_in_file(path: path) // Board represented by file
-    let patternHeight = read_in.count // The read in board's height
-    let patternWidth = read_in[0].count // The read in board's width
-    let rowStart = (height - patternHeight) / 2 // Calculate which row the pattern should start on in the larger grid
-    let colStart = (width - patternWidth) / 2 // Calculate which column the pattern should start on in the larger grid
-
-    
-    for row in 0..<height { // Goes through each row
-        var boardRow: [Int] = [] // Adds a row to the grid
-        for col in 0..<width { // Goes through each column in each row
-            if row >= rowStart && row < rowStart + patternHeight && col >= colStart && col < colStart + patternWidth { // If its within the zone that should be represented by the file's pattern
-                boardRow.append(read_in[row - rowStart][col - colStart]) // Add the value from that pattern
-            } else {
-                boardRow.append(0) // Otherwise it should be blank
-            }
-        }
-        board.append(boardRow) // Add our new row to the grid
-    }
-    return board // Return the grid
-}
-
-func read_in_file(path: String) -> [[Int]] {
-    // Function to read in from a file and make a grid from it
-    var grid: [[Int]] = [] // Grid that will hold our output
-    
-    do { // In a do in case of errors
-        
-        let content = try String(contentsOfFile: path) // Read the file content as a single string
-        
-        let lines = content.split(separator: "\n") // Split the content by lines
-        
-        for line in lines { // Go through each line
-            var row: [Int] = [] // Make a row for each line
-            for char in line { // Go through each character in the line
-                if let number = Int(String(char)) { // If it can be cast to an Int
-                    row.append(number) // Add it to the line
-                }
-            }
-            grid.append(row) // Add the row to our grid
-        }
-    } catch { // If we error, print for debug
-        print("Error reading file: \(error)")
-    }
-    return grid // Return our newly made grid
-}

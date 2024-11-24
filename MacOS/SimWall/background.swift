@@ -9,7 +9,6 @@ import Foundation
 import AppKit
 
 // SOME VALUES THAT ARE HARDCODED BUT CHANGEABLE
-// THESE ARE LIKELY TO CHANGE TO BE PASSED IN AT SOME POINT
 let scaleFactor = NSScreen.main?.backingScaleFactor ?? 10.0
 let GRID_WIDTH = Int((Int((NSScreen.main?.frame.size.width ?? 320) * scaleFactor) / cell_size))
 var GRID_HEIGHT = Int((Int((NSScreen.main?.frame.size.height ?? 180) * scaleFactor) / cell_size))
@@ -26,6 +25,8 @@ func life_remaining(layout: [[Int]], width: Int, height: Int) -> Double {
     // Then calculates the percentage by diviing the sum by the total
     return Double(sum) / Double(width * height)
 }
+
+var ants = [Ant(x: Int32(GRID_WIDTH/2), y: Int32(GRID_HEIGHT/2), direction: 0, ruleset: ant_rules, color: hex_string_to_color(from: "FF0000FF"))]
 
 
 struct Background: View {
@@ -73,8 +74,12 @@ struct Background: View {
                 } else { // If the user wants the classic mode of colored tiles on a background
                     for row in 0..<GRID_HEIGHT { // Same as above, looping through
                         for column in 0..<GRID_WIDTH { // Loops for the width still as well
+                            var ant_pos: [[Int32]] = []
+                            for ant in ants {
+                                ant_pos.append([ant.x, ant.y])
+                            }
                             let cellValue = layout[row][column] // Gets the cell value
-                            if cellValue != 0 { // Now we care about whether the cell is alive, not whether it is dead
+                            if (cellValue != 0 || ant_pos.contains([Int32(column), Int32(row)])){ // Now we care about whether the cell is alive, not whether it is dead
                                 // We build our cell the exact same way as above/
                                 let rect = CGRect(
                                     x: CGFloat(column) * cellSize,
@@ -92,8 +97,24 @@ struct Background: View {
                                     path = Path(rect) // We make the object a square
                                 }
 
+                                var cellColor: Color = .white
                                 // We set the color
-                                let cellColor = (cellValue == 1) ? alive_color : dying_color // The color is according to the flags, except for cells with the "2" value which are always pink for now
+                                if simulation == "ant" {
+                                    if ant_pos.contains([Int32(column), Int32(row)]) {
+                                        for ant in ants {
+                                            if row == ant.y && column == ant.x {
+                                                cellColor = ant.color
+                                            }
+                                        }
+                                        
+                                    } else {
+                                        cellColor = ant_colors[cellValue]
+                                    }
+    
+        
+                                } else {
+                                    cellColor = (cellValue == 1) ? alive_color : dying_color // The color is according to the flags, except for cells with the "2" value which are always pink for now
+                                }
                                 context.fill(path, with: .color(cellColor)) // Then we fill it in
                             }
                         }
@@ -107,7 +128,11 @@ struct Background: View {
         }
         .onAppear {
             // When the background appears we have a lot of work to do
-            
+            if simulation == "ant" {
+                if ants_file != "" {
+                    ants = file_to_ant(path: ants_file)
+                }
+            }
             // If the user didn't set a starting pattern, we need to generate one randomly
             if start_with_clear_board {
                 layout = makeEmptyBoard(width: GRID_WIDTH, height: GRID_HEIGHT)
@@ -115,6 +140,8 @@ struct Background: View {
                 if path == "" {
                     if simulation == "seeds" { // The seeds simulation goes from small to big, so we have a special random for it
                         layout = makeSmallBoard(width: GRID_WIDTH, height: GRID_HEIGHT) // Generates a small baord
+                    } else if simulation == "ant" {
+                        layout = makeEmptyBoard(width: GRID_WIDTH, height: GRID_HEIGHT)
                     } else { // Otherwise, we start big and get smaller, so we just use the C function from game_of_life to generate a random board
                         layout = cArrayToSwiftArray(pattern: golGenRandom(width: GRID_WIDTH, height: GRID_HEIGHT, percentAlive: STARTING_PERCENTAGE)!, width: GRID_WIDTH, height: GRID_HEIGHT) // Generates the board and then converts it to a Swift object
                     }
@@ -182,6 +209,12 @@ struct Background: View {
                                         layout = path == "" ? makeSmallBoard(width: GRID_WIDTH, height: GRID_HEIGHT) : file_to_board(path: path, width: GRID_WIDTH, height: GRID_HEIGHT) // or read from file if not random
                                     }
                                 }
+                            }
+                        }
+                    } else if simulation == "ant" {
+                        if let nextPattern = antGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT, ants: &ants) {
+                            DispatchQueue.main.async {
+                                layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT)
                             }
                         }
                     }

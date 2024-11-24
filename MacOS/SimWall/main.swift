@@ -50,12 +50,13 @@ var dying_color: Color = .gray
 var fps = 10.0
 var simulation = "game_of_life" // The default simulation is game of life (options are game_of_life, brians_brain, seeds
 var ant_rules = "RL"
-var ant_color: Color = .red
+var ants_file = ""
 var shape = "square"
 var cell_size = 25
 var disable_keybinds = false
 var disable_restocking = false
 var start_with_clear_board = false
+var ant_colors: [Color] = [.red]
 
 
 var speed = 0.05 // Speed of the game (1/speed = FPS)
@@ -95,6 +96,16 @@ for i in 1..<argument_count { // Loops through each arugment (starting w/ 1 sinc
     case "-ant_rules":
         if i != argument_count - 1 {
             ant_rules = CommandLine.arguments[i + 1]
+        }
+    case "-ant_color":
+        var j = i + 1 // Start with the next argument
+        while j < argument_count && !CommandLine.arguments[j].hasPrefix("-") {
+            ant_colors.append(Color(hex_string_to_color(from: CommandLine.arguments[j])))
+            j += 1
+        }
+    case "-ants":
+        if i != argument_count - 1 {
+            ants_file = CommandLine.arguments[i + 1]
         }
     case "-c":
         shape = "circle"
