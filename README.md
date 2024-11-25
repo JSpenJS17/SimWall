@@ -24,10 +24,9 @@ After it's done building, there will be an executable file in the `electron/sim_
 ##  Keybinds
 - `Ctrl-Alt-Q` Quit
 - `Ctrl-Alt-P` Pause
-- `Ctrl-Alt-A` Enter/Exit add mode (unavailable for Langton's Ant)
-
--- Add Mode: Hold the left mouse button to add cells 
 - `Ctrl-Alt-D` Delete all cells
+- `Ctrl-Alt-A` Enter/Exit add mode (unavailable for Langton's Ant)
+- Add Mode: Hold the left mouse button to add cells 
 ## Command Line Arguments
 | Feature         | Flag           | Default Value | Description |
 |-|-|-|-|
