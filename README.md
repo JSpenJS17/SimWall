@@ -22,10 +22,7 @@ Link Langton's Ant
 | Seeds           | `-seeds`       | False         |                                                                             |
 | Langton's Ant   | `-ant`         | False         |                                                                             |
 | Ant options     |                |               |                                                                             |
-| - Ant Rules     | `-ant_rules`   | RLCU          | Set the ant's directional logic                                             |
-| - Ant Color     | `-ant_color`   | FF0000FF      | Set the ant's color                                                         |
-| - Color List    | `-color_list`  | TBD           | Set the color list for states in Langton's Ant                              |
-| - Ants          | `-ants`        | ants.txt      | Give input ant locations, color, rules, directions (Have GUI make the text file) |
+| - Ants          | `-ant_params`        | ants.txt      | Give input ruleset, color list, ant locations, color, and directions (Have GUI make the text file) |
 | Circles         | `-c`           | False         | Draw circles instead of squares                                             |
 | Cell Size       | `-s`           | 25            | Set the cell size in pixels                                                 |
 | Disable Keybinds| `-nk`          | False         |                                                                             |
