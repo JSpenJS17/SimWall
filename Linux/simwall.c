@@ -397,7 +397,7 @@ void handle_keybinds(Board* cur_board) {
     }
 
     // Enter add mode if Ctrl-Alt-A is pressed, not in add mode, and not doing ant things
-    if (check_for_keybind("A") && !add_mode && !args->flags & ANT) {
+    if (check_for_keybind("A") && !add_mode && !(args->flags & ANT)) {
         // set add_mode to true to prevent extra recursion into here
         add_mode = true;
 
