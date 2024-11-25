@@ -246,12 +246,18 @@ Args* parse_args(int argc, char **argv) {
             }
 
             // read the ruleset
-            fgets(ruleset, 64, ants_file);
-            ruleset[strlen(ruleset)-1] = '\0'; // ensure null-terminated, also remove newline
+            if (fgets(ruleset, 64, ants_file) == NULL) {
+                fprintf(stderr, "Failed to read from file or EOF reached.\n");
+                usage();
+            }
+            ruleset[strlen(ruleset) - 1] = '\0'; // Ensure null-terminated, also remove newline
 
             // read the color list line
             char color_list_str[512];
-            fgets(color_list_str, 512, ants_file);
+            if (fgets(color_list_str, 512, ants_file) == NULL) {
+                fprintf(stderr, "Failed to read from file or EOF reached.\n");
+                usage();
+            } 
             color_list_str[strlen(color_list_str)-1] = '\0'; // remove the newline
             
             // parse the color list
@@ -327,7 +333,10 @@ Args* parse_args(int argc, char **argv) {
                 Ant ant;
                 char line[256];
                 // read in a line
-                fgets(line, 256, ants_file);
+                if (fgets(line, 256, ants_file) == NULL) {
+                    fprintf(stderr, "Failed to read from file or EOF reached.\n");
+                    usage();
+                }
                 // parse the line
                 int num = sscanf(line, "%d %d %d %2hx%2hx%2hx%2hx\n",
                             &ant.x, &ant.y, (int*)&ant.direction,
