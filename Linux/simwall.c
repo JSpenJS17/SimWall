@@ -32,7 +32,7 @@ typedef struct Args {
     ARGB alive_color, dead_color, dying_color;
     uchar flags;
     Ant* ants;
-    size_t num_ants;
+    int num_ants;
     float framerate;
 } Args;
 
@@ -52,6 +52,7 @@ ARGB* color_list;
 
 // Langton's Ant specific globals
 size_t num_colors;
+char ruleset[64]; // null-terminated string of rules, max 64 chars
 
 void usage() {
     fprintf(stderr, "Usage: simwall [options]\n");
@@ -65,12 +66,18 @@ void usage() {
     fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n");
     fprintf(stderr, "  -seeds: Run Seeds instead of Game of Life\n");
     fprintf(stderr, "  -ant: Run Langton's Ant instead of Game of Life\n");
-    fprintf(stderr, "    -color_list 000000FF 808080FF FFFFFFFF ... : Set the color list for states in Langton's Ant (RGBA)\n");
-    fprintf(stderr, "    -ants ants.txt: Give input ant locations and directions in a file.\n");
-    fprintf(stderr, "       Format: x y direction ruleset color\\n\n");
-    fprintf(stderr, "         For direction, 0:UP, 1:RIGHT, 2:DOWN, 3:LEFT\n"); // might change to strings that are parsed to the enum later
-    fprintf(stderr, "         For ruleset, R:RIGHT, L:LEFT, C:CONTINUE, U:U-TURN\n");
-    fprintf(stderr, "      example: 5 5 0 RL 000000FF\n");
+    fprintf(stderr, "    -ant_params ant_params.txt: Give ant parameters in a file.\n");
+    fprintf(stderr, "       Format:\n");
+    fprintf(stderr, "         RULESET\n");
+    fprintf(stderr, "         CELL COLOR LIST (RGBA values, space delimited)\n");
+    fprintf(stderr, "         X0 Y0 START_DIRECTION ANT0_COLOR\n");
+    fprintf(stderr, "         X1 Y1 START_DIRECTION ANT1_COLOR\n");
+    fprintf(stderr, "         etc...\n");
+    fprintf(stderr, "       For direction, 0:UP, 1:RIGHT, 2:DOWN, 3:LEFT\n"); // might change to strings that are parsed to the enum later
+    fprintf(stderr, "       For ruleset, R:RIGHT, L:LEFT, C:CONTINUE, U:U-TURN (ex. RLLRCU)\n");
+    fprintf(stderr, "       Cell color list length must be >= to ruleset length\n");
+    fprintf(stderr, "         and can be set to default values by providing the keyword \"default\"\n");
+    fprintf(stderr, "         or \"default_alpha\" for a transparent background\n");
     fprintf(stderr, "  -c: Draw circles instead of a squares\n");
     fprintf(stderr, "  -s 25: Set the cell size in pixels\n");
     fprintf(stderr, "  -nk: Disable keybinds\n");
@@ -223,67 +230,110 @@ Args* parse_args(int argc, char **argv) {
             CELL_SIZE = atoi(argv[i+1]);
             i += 1;
         }
-        // color list for langton's ant
-        else if (strcmp(argv[i], "-color_list") == 0) {
-            // Find the number of colors
-            num_colors = 0;
-            for (int j = i + 1; j < argc; j++) {
-                if (argv[j][0] == '-') {
-                    break;
-                }
-                num_colors++;
-            }
-            // Allocate space for the colors
-            color_list = (ARGB*)malloc(num_colors * sizeof(ARGB));
-
-            // Parse the colors
-            for (int j = 0; j < num_colors; j++) {
-                char* color_str = argv[i+j+1];
-                if (strlen(color_str) != 8) {
-                    fprintf(stderr, "Invalid color: %s\n", color_str);
-                    usage();
-                }
-                sscanf(color_str, "%2hx%2hx%2hx%2hx", &color_list[j].r, &color_list[j].g, &color_list[j].b, &color_list[j].a);
-            }
-            i += num_colors;
-
-            // Error out if no colors given
-            if (num_colors == 0) {
-                fprintf(stderr, "No colors given for Langton's Ant\n");
-                usage();
-            }
-        }
-        // ants file
-        else if (strcmp(argv[i], "-ants") == 0) {
-            // free the default ant
-            free(args->ants);
+        // ant params file
+        else if (strcmp(argv[i], "-ant_params") == 0) {
+            // make sure we have enough args
             if (i + 1 >= argc) {
-                fprintf(stderr, "Not enough arguments for -ants\n");
+                fprintf(stderr, "Not enough arguments for -ant_params\n");
                 usage();
             }
+            
             // open the file
             FILE* ants_file = fopen(argv[i+1], "r");
             if (!ants_file) {
                 fprintf(stderr, "Could not open file: %s\n", argv[i+1]);
                 usage();
             }
+
+            // read the ruleset
+            fgets(ruleset, 64, ants_file);
+            ruleset[strlen(ruleset)-1] = '\0'; // ensure null-terminated, also remove newline
+
+            // read the color list line
+            char color_list_str[512];
+            fgets(color_list_str, 512, ants_file);
+            color_list_str[strlen(color_list_str)-1] = '\0'; // remove the newline
+            
+            // parse the color list
+            char* color_str = strtok(color_list_str, " ");
+
+            // how many colors there SHOULD be
+            num_colors = strlen(ruleset);
+            // allocate space for the color list
+            color_list = (ARGB*)malloc(num_colors * sizeof(ARGB));
+
+            // check if it should be default colors
+            bool use_defaults = false;
+            bool use_alpha = false;
+            // check if they wanted alpha background
+            if (strcmp(color_str, "default_alpha") == 0) {
+                use_alpha = true;
+            }
+
+            // then, if they wanted default colors at all
+            if (strcmp(color_str, "default") == 0 || use_alpha) {
+                // default colors
+                use_defaults = true;
+                // define step size to be equal steps between 0 and 255
+                    // num_colors-1 ensure background is black and fully on is white
+                int step_size = 255 / (num_colors-1);
+                for (int j = 0; j < num_colors; j++) {
+                    // otherwise, set the color to be a shade of gray
+                    color_list[j] = (ARGB){255, j*step_size, j*step_size, j*step_size};
+                }
+                if (use_alpha) {
+                    // set the background color to be transparent instead of black
+                    color_list[0] = (ARGB){0, 0, 0, 0};   
+                }
+            }
+
+
+            // if we're not using the default colors, i.e. they gave us some
+            if (!use_defaults) {
+                // if there are too many colors, skip em!
+                for (int j = 0; j < num_colors; j++) {
+                    // check for errors
+                    if (color_str == NULL) { // not enough colors
+                        fprintf(stderr, "Color list too short\n");
+                        usage();
+                    }
+                    if (strlen(color_str) != 8) { // not a valid color
+                        fprintf(stderr, "Invalid color: %s\n", color_str);
+                        usage();
+                    }
+
+                    // convert the hex to ARGB
+                    sscanf(color_str, "%2hx%2hx%2hx%2hx", &color_list[j].r, &color_list[j].g, &color_list[j].b, &color_list[j].a);
+                    // get the next color
+                    // not 100% on why the NULL is needed here instead of color_list_str, but it is
+                    color_str = strtok(NULL, " ");
+                }
+            }
+
+            // set dead color because it's used as window background
+            args->dead_color = color_list[0];
+
             // read the number of ants
-            args->num_ants = count_lines(argv[i+1]);
+            args->num_ants = count_lines(argv[i+1])-2;
+            if (args->num_ants <= 0) {
+                fprintf(stderr, "Invalid ant file: %s\n", argv[i+1]);
+                usage();
+            }
+
             // allocate space for the ants
             args->ants = (Ant*)malloc(args->num_ants * sizeof(Ant));
             // read the ants
             for (int j = 0; j < args->num_ants; j++) {
                 Ant ant;
-                char line[512];
+                char line[256];
                 // read in a line
-                fgets(line, 512, ants_file);
+                fgets(line, 256, ants_file);
                 // parse the line
-                int num = sscanf(line, "%d %d %d %s %2hx%2hx%2hx%2hx\n",
+                int num = sscanf(line, "%d %d %d %2hx%2hx%2hx%2hx\n",
                             &ant.x, &ant.y, (int*)&ant.direction,
-                            ant.ruleset,
                             &ant.color.r, &ant.color.g, &ant.color.b, &ant.color.a);
                 // check for errors (lightly, not a full check)
-                if (num != 8) {
+                if (num != 7) {
                     fprintf(stderr, "Invalid ant line: %s\n", line);
                     usage();
                 }
@@ -471,47 +521,27 @@ int main(int argc, char **argv) {
     if (args->flags & ANT) {
         // do ant things
         if (!args->ants) {
-            // Fill in default ant if none given
+            // Default ant
             args->num_ants = 1;
             args->ants = (Ant*)malloc(sizeof(Ant));
             args->ants[0].x = cur_board.width / 2;
             args->ants[0].y = cur_board.height / 2;
             args->ants[0].direction = UP;
-            strcpy(args->ants[0].ruleset, "RL");
             args->ants[0].color = (ARGB){255, 255, 0, 0};
+
+            // Default color list
+            color_list = (ARGB*)malloc(2 * sizeof(ARGB));
+            color_list[0] = (ARGB){255, 0, 0, 0};
+            color_list[1] = (ARGB){255, 255, 255, 255};
+            num_colors = 2;
+
+            // Default ruleset
+            ruleset[0] = 'R';
+            ruleset[1] = 'L';
+            ruleset[2] = '\0';
         }
         // Initialize the ants
-        init_ants(args->ants, args->num_ants);
-
-        // Find the longest ruleset
-        size_t max_rules = 0;
-        for (int i = 0; i < args->num_ants; i++) {
-            size_t len = strlen(args->ants[i].ruleset);
-            if (len > max_rules) {
-                max_rules = len;
-            }
-        }
-
-        // generate a color list if none given
-        if (num_colors == 0) {
-            // Set correct number of colors
-            num_colors = max_rules;
-            // Alloc them
-            color_list = (ARGB*)malloc(max_rules * sizeof(ARGB));
-            // Generate them by stepping through the RGB spectrum in equal steps
-                // this will create a number of shades of gray
-            int step_size = 256 / max_rules;
-            // Set the colors
-            for (int i = 0; i < max_rules; i++) {
-                color_list[i] = (ARGB){255, i * step_size, i * step_size, i * step_size};
-            }
-        }
-
-        // Make sure the number of colors given is >= the number of states
-        if (num_colors < max_rules) {
-            fprintf(stderr, "Not enough colors given for Langton's Ant\n");
-            exit(1);
-        }
+        init_ants(args->ants, args->num_ants, ruleset);
     } else {
         num_colors = 3;
         color_list = (ARGB*)malloc(3 * sizeof(ARGB));
