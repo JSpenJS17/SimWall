@@ -158,7 +158,7 @@ void parse_ants_file(FILE* ants_file, const char* filename) {
         int step_size = 255 / (num_colors-1);
         for (int j = 0; j < num_colors; j++) {
             // otherwise, set the color to be a shade of gray
-            color_list[j] = (RGBA){255, j*step_size, j*step_size, j*step_size};
+            color_list[j] = (RGBA){j*step_size, j*step_size, j*step_size, 255};
         }
         if (use_alpha) {
             // set the background color to be transparent instead of black
@@ -630,6 +630,7 @@ int main(int argc, char **argv) {
             }
         }
 
+        // Update the window to push frame changes
         update_window();
 
         /* GENERATION PORTION */

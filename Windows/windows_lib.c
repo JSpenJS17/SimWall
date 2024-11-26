@@ -48,7 +48,19 @@ void fill_cell(int x, int y, size_t size) {
 
 void fill_circle(int x, int y, size_t size) {
     /* Fills a circle at x, y with the current color */
-    Ellipse(hdc, x*size, y*size, (x+1)*size, (y+1)*size);
+    int radius = size / 2;
+    int center_x = x * size + radius;
+    int center_y = y * size + radius;
+
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            int dx = center_x - (x*size + j);
+            int dy = center_y - (y*size + i);
+            if (dx*dx + dy*dy <= radius*radius) {
+                pixels[(y*size + i) * screen_width() + (x*size + j)] = cur_color;
+            }
+        }
+    }
 }
 
 // Get the screen width and height
