@@ -38,8 +38,8 @@ typedef struct POS POS;
 
 /* Function prototypes */
 void cleanup();
-void fill_cell(int x, int y, int size);
-void fill_circle(int x, int y, int size);
+void fill_cell(int x, int y, size_t size);
+void fill_circle(int x, int y, size_t size);
 void color(RGBA rgba);
 HWND window_setup(RGBA bg_color);
 int screen_width();

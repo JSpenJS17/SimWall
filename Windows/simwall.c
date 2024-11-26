@@ -73,8 +73,9 @@ void usage() {
     fprintf(stderr, "  -fps 10.0: Set the framerate\n");
     fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n");
     fprintf(stderr, "  -seeds: Run Seeds instead of Game of Life\n");
-    fprintf(stderr, "  -ant: Run Langton's Ant instead of Game of Life\n");
-    fprintf(stderr, "    -ant_params ant_params.txt: Give ant parameters in a file.\n");
+    fprintf(stderr, "  -ant <ant_params.txt>: Run Langton's Ant instead of Game of Life.\n");
+    fprintf(stderr, "                         Ant parameters are optional.\n");
+    fprintf(stderr, "    -ant_params.txt: Give ant parameters in a file.\n");
     fprintf(stderr, "       Format:\n");
     fprintf(stderr, "         RULESET\n");
     fprintf(stderr, "         CELL COLOR LIST (RGBA values, space delimited)\n");
@@ -83,8 +84,8 @@ void usage() {
     fprintf(stderr, "         etc...\n");
     fprintf(stderr, "       For direction, 0:UP, 1:RIGHT, 2:DOWN, 3:LEFT\n"); // might change to strings that are parsed to the enum later
     fprintf(stderr, "       For ruleset, R:RIGHT, L:LEFT, C:CONTINUE, U:U-TURN (ex. RLLRCU)\n");
-    fprintf(stderr, "       Cell color list length must be >= to ruleset length\n");
-    fprintf(stderr, "         and can be set to default values by providing the keyword \"default\"\n");
+    fprintf(stderr, "       Cell color list length must be >= to ruleset length and\n");
+    fprintf(stderr, "         can be set to default values by providing the keyword \"default\"\n");
     fprintf(stderr, "         or \"default_alpha\" for a transparent background\n");
     fprintf(stderr, "  -c: Draw circles instead of a squares\n");
     fprintf(stderr, "  -s 25: Set the cell size in pixels\n");
@@ -114,6 +115,18 @@ int count_lines(const char *filename) {
 
     fclose(file);
     return line_count;
+}
+
+void simwall_cleanup() {
+    free(color_list);
+    free(args->ants);
+    free(args);
+    cleanup();
+}
+
+void sigint_handler(int sig) {
+    simwall_cleanup();
+    exit(0);
 }
 
 Args* parse_args(int argc, char **argv) {
@@ -284,7 +297,7 @@ Args* parse_args(int argc, char **argv) {
                 int step_size = 255 / (num_colors-1);
                 for (int j = 0; j < num_colors; j++) {
                     // otherwise, set the color to be a shade of gray
-                    color_list[j] = (RGBA){255, j*step_size, j*step_size, j*step_size};
+                    color_list[j] = (RGBA){j*step_size, j*step_size, j*step_size, 255};
                 }
                 if (use_alpha) {
                     // set the background color to be transparent instead of black
@@ -387,7 +400,6 @@ Args* parse_args(int argc, char **argv) {
     return args;
 }
 int main(int argc, char **argv) {
-
     //Using mutex to prevent multiple instances of the program
     // Create a named mutex
     HANDLE hMutex = CreateMutex(NULL, TRUE, "SimWallMutex");
@@ -402,6 +414,9 @@ int main(int argc, char **argv) {
         CloseHandle(hMutex);
         return 1;
     }
+
+    // Set up the signal interrupt (ctrl+c) handler
+    signal(SIGINT, sigint_handler);
 
     // parse arguments
     args = parse_args(argc, argv);
@@ -486,11 +501,11 @@ int main(int argc, char **argv) {
             args->ants[0].x = cur_board.width / 2;
             args->ants[0].y = cur_board.height / 2;
             args->ants[0].direction = UP;
-            args->ants[0].color = (RGBA){255, 255, 0, 0};
+            args->ants[0].color = (RGBA){255, 0, 0, 255};
 
             // Default color list
             color_list = (RGBA*)malloc(2 * sizeof(RGBA));
-            color_list[0] = (RGBA){255, 0, 0, 0};
+            color_list[0] = (RGBA){0, 0, 0, 255};
             color_list[1] = (RGBA){255, 255, 255, 255};
             num_colors = 2;
 
@@ -512,73 +527,74 @@ int main(int argc, char **argv) {
 
     // set the color to the background color
     int num_colors = 3;
-    RGBA color_list[] = {args->dead_color, 
-                        args->alive_color, 
-                        args->dying_color}; // can add more potentially
+    RGBA* color_list = (RGBA*)malloc(num_colors * sizeof(RGBA));
+    color_list[0] = args->dead_color;
+    color_list[1] = args->alive_color;
+    color_list[2] = args->dying_color;
     color(color_list[cur_color]);
     cur_color = DEAD;    
 
     // define iter count
     int iter_count = 0;
 
-// Main loop
-int frame_duration = 1000 / args->framerate;  // Frame duration based on the framerate
+    // Main loop
+    int frame_duration = 1000 / args->framerate;  // Frame duration based on the framerate
 
-while (1) {
-    DWORD frame_start = GetTickCount();  // Start of the frame
+    while (1) {
+        DWORD frame_start = GetTickCount();  // Start of the frame
 
-    //Handle Hot keys
-    MSG msg;
-    //Check for messages
-    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-    //Quit when Ctrl+Alt+Q is pressed
-    if (msg.message == WM_QUIT) {
-        break;
-    }
-
-    //Pause when Ctrl+Alt+P is pressed
-    if (paused){
-        continue;       //Skip the drawing loop if paused
-    }
-
-    //Enter add mode when Ctrl+Alt+A is pressed and ants is not active
-    if (add_mode && !(args->flags & ANT)){
-        if (is_lmb_pressed()) {
-            //set the color to the alive color
-            color(args->alive_color);
-            // get the mouse position
-            POINT mouse_pos = get_mouse_pos();
-            int x = mouse_pos.x / CELL_SIZE;
-            int y = mouse_pos.y / CELL_SIZE;
-
-            // fill the cell
-            cur_board.pattern[y * cur_board.width + x] = ALIVE;
-            fill_func(x, y, CELL_SIZE);
-            }
-
-        continue;       //Skip the drawing loop if in add mode
-    }
-
-    if (clear) {
-        // Set the board to deads
-        memset(cur_board.pattern, DEAD, cur_board.width * cur_board.height * sizeof(int));
-
-        // Set the color
-        color(args->dead_color);
-        cur_color = DEAD;
-
-        // Fill the board right here and now for instant updates!
-        for (int i = 0; i < cur_board.width * cur_board.height; i++) {
-            (*fill_func)(i % cur_board.width, i / cur_board.width, CELL_SIZE);
+        //Handle Hot keys
+        MSG msg;
+        //Check for messages
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
         }
-        clear = false;
-    }
+        //Quit when Ctrl+Alt+Q is pressed
+        if (msg.message == WM_QUIT) {
+            break;
+        }
+
+        //Pause when Ctrl+Alt+P is pressed
+        if (paused){
+            continue;       //Skip the drawing loop if paused
+        }
+
+        //Enter add mode when Ctrl+Alt+A is pressed and ants is not active
+        if (add_mode && !(args->flags & ANT)){
+            if (is_lmb_pressed()) {
+                //set the color to the alive color
+                color(args->alive_color);
+                // get the mouse position
+                POINT mouse_pos = get_mouse_pos();
+                int x = mouse_pos.x / CELL_SIZE;
+                int y = mouse_pos.y / CELL_SIZE;
+
+                // fill the cell
+                cur_board.pattern[y * cur_board.width + x] = ALIVE;
+                fill_func(x, y, CELL_SIZE);
+                }
+
+            continue;       //Skip the drawing loop if in add mode
+        }
+
+        if (clear) {
+            // Set the board to deads
+            memset(cur_board.pattern, DEAD, cur_board.width * cur_board.height * sizeof(int));
+
+            // Set the color
+            color(args->dead_color);
+            cur_color = DEAD;
+
+            // Fill the board right here and now for instant updates!
+            for (int i = 0; i < cur_board.width * cur_board.height; i++) {
+                (*fill_func)(i % cur_board.width, i / cur_board.width, CELL_SIZE);
+            }
+            clear = false;
+        }
 
 
-    /* DRAWING PORTION */
+        /* DRAWING PORTION */
 
         for (int i = 0; i < cur_board.width * cur_board.height; i++) {
             // if the color has changed
@@ -595,7 +611,7 @@ while (1) {
             }
 
             // fill the cell with whatever color we land on
-            (*fill_func)(i % cur_board.width, i / cur_board.width, CELL_SIZE);
+            fill_func(i % cur_board.width, i / cur_board.width, CELL_SIZE);
         }
         
 
@@ -603,10 +619,10 @@ while (1) {
         cur_color = DEAD;
         // fill one more row and col with bg to make sure we fill the whole screen
         for (int i = 0; i < cur_board.width; i++) {
-            (*fill_func)(i, cur_board.height, CELL_SIZE);
+            fill_func(i, cur_board.height, CELL_SIZE);
         }
         for (int i = 0; i < cur_board.height; i++) {
-            (*fill_func)(cur_board.width, i, CELL_SIZE);
+            fill_func(cur_board.width, i, CELL_SIZE);
         }
 
         // Handle drawing ants over the now completed board
@@ -629,7 +645,7 @@ while (1) {
         // check if we need to add more cells
         if (args->flags & SEEDS) {
             // increment iter count
-             iter_count++;
+            iter_count++;
             // if iter count too high
             if (iter_count >= 100 && !(args->flags & NO_RESTOCK)) {
                 int* next_pattern = gen_random(cur_board.width, cur_board.height, 20);
@@ -648,21 +664,17 @@ while (1) {
         dead = 0;
 
 
-    // Frame timing logic
-    DWORD frame_end = GetTickCount();
-    DWORD elapsed_time = frame_end - frame_start;
-    if (elapsed_time < frame_duration) {
-        Sleep(frame_duration - elapsed_time);
+        // Frame timing logic
+        DWORD frame_end = GetTickCount();
+        DWORD elapsed_time = frame_end - frame_start;
+        if (elapsed_time < frame_duration) {
+            Sleep(frame_duration - elapsed_time);
         }
     }
 
-    // cleanup
-
+    // cleanup]
     free(cur_board.pattern);
-    cleanup();
-    free(color_list);
-    free(args->ants);
-    free(args);
+    simwall_cleanup();
     return 0;
 }
 

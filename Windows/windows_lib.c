@@ -15,9 +15,6 @@ Will basically have some Windows API helpers that will be used in the main file
 #include "windows_lib.h"
 
 #define NAME "SimWall"
-#define VERSION "0.1"
-
-#define ATOM(a) XInternAtom(display, #a, False)
 
 // Globals for display information
 static HWND hwnd;
@@ -33,13 +30,13 @@ bool add_mode = false;
 bool clear = false;
 
 /* Functions */
-void fill_cell(int x, int y, int size) {
+void fill_cell(int x, int y, size_t size) {
     /* Fills a cell at x, y with the current color */
     RECT rect = {x*size, y*size, (x+1)*size, (y+1)*size};
     FillRect(hdc, &rect, hBrush);
 }
 
-void fill_circle(int x, int y, int size) {
+void fill_circle(int x, int y, size_t size) {
     /* Fills a circle at x, y with the current color */
     Ellipse(hdc, x*size, y*size, (x+1)*size, (y+1)*size);
     }
@@ -91,7 +88,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 HWND GetDesktopWorkerW() {
     // Send a message to Progman to spawn WorkerW
     HWND hProgman = FindWindow("Progman", NULL);
-    SendMessageTimeout(hProgman, 0x052C, NULL, NULL, SMTO_NORMAL, 1000, NULL);
+    SendMessageTimeout(hProgman, 0x052C, 0, 0, SMTO_NORMAL, 1000, NULL);
 
     // Enumerate through windows to find the WorkerW
     EnumWindows(EnumWindowsProc, 0);
