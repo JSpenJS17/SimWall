@@ -486,8 +486,8 @@ int main(int argc, char **argv) {
 
     // GAME TIME!!!    
     Board cur_board;
-    cur_board.height = screen_height() / CELL_SIZE + 1;
-    cur_board.width = screen_width() / CELL_SIZE + 1;
+    cur_board.height = screen_height() / CELL_SIZE;
+    cur_board.width = screen_width() / CELL_SIZE;
     
     // Set up the board with random start
     cur_board.pattern = (*gen_random)(cur_board.width, cur_board.height, 20);
@@ -580,7 +580,7 @@ int main(int argc, char **argv) {
                 // fill the cell
                 cur_board.pattern[y * cur_board.width + x] = ALIVE;
                 fill_func(x, y, CELL_SIZE);
-                }
+            }
 
             continue;       //Skip the drawing loop if in add mode
         }
@@ -595,15 +595,13 @@ int main(int argc, char **argv) {
 
             // Fill the board right here and now for instant updates!
             for (int i = 0; i < cur_board.width * cur_board.height; i++) {
-                (*fill_func)(i % cur_board.width, i / cur_board.width, CELL_SIZE);
+                fill_func(i % cur_board.width, i / cur_board.width, CELL_SIZE);
             }
             clear = false;
         }
 
-
         /* DRAWING PORTION */
-
-        for (int i = 0; i < cur_board.width * cur_board.height; i++) {
+        for (int i = 0; i < cur_board.height * cur_board.width; i++) {
             // if the color has changed
             if (cur_board.pattern[i] != cur_color) {
                 // update color accordingly
@@ -620,17 +618,6 @@ int main(int argc, char **argv) {
             // fill the cell with whatever color we land on
             fill_func(i % cur_board.width, i / cur_board.width, CELL_SIZE);
         }
-        
-
-        color(color_list[DEAD]);
-        cur_color = DEAD;
-        // fill one more row and col with bg to make sure we fill the whole screen
-        for (int i = 0; i < cur_board.width; i++) {
-            fill_func(i, cur_board.height, CELL_SIZE);
-        }
-        for (int i = 0; i < cur_board.height; i++) {
-            fill_func(cur_board.width, i, CELL_SIZE);
-        }
 
         // Handle drawing ants over the now completed board
         if (args->flags & ANT) {
@@ -642,6 +629,8 @@ int main(int argc, char **argv) {
                 fill_func(ant.x, ant.y, CELL_SIZE);
             }
         }
+
+        update_window();
 
         /* GENERATION PORTION */
         // Now generate the next pattern
@@ -677,11 +666,13 @@ int main(int argc, char **argv) {
         if (elapsed_time < frame_duration) {
             Sleep(frame_duration - elapsed_time);
         }
+
     }
 
-    // cleanup]
+    // cleanup
     free(cur_board.pattern);
     simwall_cleanup();
+    cleanup();
     return 0;
 }
 

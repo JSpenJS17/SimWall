@@ -11,6 +11,7 @@
 #include <windows.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 /* typedefs for my convenience */
 typedef unsigned char uchar;
@@ -47,6 +48,7 @@ int screen_height();
 POINT get_mouse_pos();
 bool is_lmb_pressed();
 HWND GetDesktopWorker();
+void update_window();
 extern bool paused;
 extern bool add_mode;
 extern bool clear;

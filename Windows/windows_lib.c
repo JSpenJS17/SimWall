@@ -20,49 +20,49 @@ Will basically have some Windows API helpers that will be used in the main file
 static HWND hwnd;
 static HDC hdc;
 
-// Graphics context for drawing
-static HPEN hPen;
-static HBRUSH hBrush;
-
 // Global variables for the program
 bool paused = false;
 bool add_mode = false;
 bool clear = false;
 
+// Global variables for the graphics
+static uint32_t cur_color;
+static DWORD* pixels;
+static SIZE size;
+static POINT ptSrc;
+static BLENDFUNCTION blend;
+static HDC hMemDC;
+static int pix_width;
+static int pix_height;
+static HBITMAP hBitmap;
+
 /* Functions */
 void fill_cell(int x, int y, size_t size) {
     /* Fills a cell at x, y with the current color */
-    RECT rect = {x*size, y*size, (x+1)*size, (y+1)*size};
-    FillRect(hdc, &rect, hBrush);
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            pixels[(y*size + i) * screen_width() + (x*size + j)] = cur_color;
+        }
+    }
 }
 
 void fill_circle(int x, int y, size_t size) {
     /* Fills a circle at x, y with the current color */
     Ellipse(hdc, x*size, y*size, (x+1)*size, (y+1)*size);
-    }
+}
 
 // Get the screen width and height
 int screen_width(){
-    return GetSystemMetrics(SM_CXSCREEN)*3/2;
+    return pix_width;
 }
 
 int screen_height() {
-    return GetSystemMetrics(SM_CYSCREEN)*3/2;
+    return pix_height;
 }
 
 void color(RGBA rgba) {
     /* Sets foreground paint color using RGB struct */
-    
-    // Change the pen color
-    SetDCPenColor(hdc, RGB(rgba.r, rgba.g, rgba.b));
-    
-    // Change the brush color
-    if (hBrush) {
-        DeleteObject(hBrush);
-    }
-    hBrush = CreateSolidBrush(RGB(rgba.r, rgba.g, rgba.b));
-    SelectObject(hdc, hBrush);
-
+    cur_color = (rgba.a << 24) | (rgba.r << 16) | (rgba.g << 8) | rgba.b;
 }
 
 /*From https://stackoverflow.com/questions/5404277/c-win32-how-to-get-the-window-handle-of-the-window-that-has-focus
@@ -105,9 +105,6 @@ void Detach(HWND win) {
 
 void cleanup() {
     /* Cleans everything up, be sure to call when done */
-    DeleteObject(hPen);
-    DeleteObject(hBrush);
-
     // Hide and destroy main window
     ShowWindow(hwnd, SW_HIDE);
     ShowWindow(hWorkerW, SW_HIDE);
@@ -118,6 +115,10 @@ void cleanup() {
     // Unregister the hotkeys
     UnregisterHotKey(NULL, 1);
     UnregisterHotKey(NULL, 2);
+
+    // Release transparency related stuff
+    DeleteDC(hMemDC);
+    ReleaseDC(hwnd, hdc);
 }
 
 POINT get_mouse_pos() {
@@ -174,6 +175,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return 0;
 }
 
+void update_window() {
+    UpdateLayeredWindow(hwnd, hdc, NULL, &size, hMemDC, &ptSrc, 0, &blend, ULW_ALPHA);
+}
 
 // Sets up a window with the specified background color
 HWND window_setup(RGBA bg_color) {
@@ -183,6 +187,10 @@ HWND window_setup(RGBA bg_color) {
     wc.lpfnWndProc = WndProc; 
     wc.hbrBackground = CreateSolidBrush(RGB(bg_color.r, bg_color.g, bg_color.b));
 
+    // set screen width and height
+    pix_width = GetSystemMetrics(SM_CXSCREEN)*3/2;
+    pix_height = GetSystemMetrics(SM_CYSCREEN)*3/2;
+
     // Register the window class
     if (!RegisterClass(&wc)) {
         MessageBox(NULL, "Failed to register window class", "Error", MB_ICONERROR);
@@ -191,7 +199,7 @@ HWND window_setup(RGBA bg_color) {
 
     // Create the window
     hwnd = CreateWindowEx(
-        WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, // Extended styles
+        WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, // Extended styles
         NAME, "SimWall", WS_POPUP | WS_VISIBLE, // WS_POPUP for a borderless window
         0, 0, screen_width(), screen_height(), // Fullscreen dimensions
         NULL, NULL, wc.hInstance, NULL
@@ -218,13 +226,40 @@ HWND window_setup(RGBA bg_color) {
 
     // Initialize the graphics context
     hdc = GetDC(hwnd);
-    
-    //Set up the pen and brush
-    hPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-    hBrush = CreateSolidBrush(RGB(0, 0, 0)); // Default brush color
-    SelectObject(hdc, hPen);
-    SelectObject(hdc, hBrush);
 
+    // Transparency stuff
+    // Create a compatible bitmap with alpha
+    BITMAPINFO bmi = {0};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = screen_width();
+    bmi.bmiHeader.biHeight = -screen_height(); // Negative height for top-down DIB
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32; // 32 bits per pixel
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    void* pvBits;
+    hBitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &pvBits, NULL, 0);
+    if (!hBitmap) {
+        MessageBox(NULL, "Failed to create DIB section!", "Error", MB_ICONERROR | MB_OK);
+        exit(1);
+    }
+
+    // Fill the bitmap with semi-transparent red
+    hMemDC = CreateCompatibleDC(hdc);
+    SelectObject(hMemDC, hBitmap);
+
+    pixels = (DWORD*)pvBits;
+
+    // Set up the window to support per-pixel alpha
+    ptSrc = (POINT){0, 0};
+    size = (SIZE){screen_width(), screen_height()};
+    blend = (BLENDFUNCTION){AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
+
+    // Update the window
+    update_window();
+
+    // Show the window
+    ShowWindow(hwnd, SW_SHOW);
 
     return hwnd;
 }
