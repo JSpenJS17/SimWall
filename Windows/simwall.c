@@ -580,6 +580,7 @@ int main(int argc, char **argv) {
                 // fill the cell
                 cur_board.pattern[y * cur_board.width + x] = ALIVE;
                 fill_func(x, y, CELL_SIZE);
+                update_window();
             }
 
             continue;       //Skip the drawing loop if in add mode
@@ -597,7 +598,6 @@ int main(int argc, char **argv) {
             for (int i = 0; i < cur_board.width * cur_board.height; i++) {
                 fill_func(i % cur_board.width, i / cur_board.width, CELL_SIZE);
             }
-            clear = false;
         }
 
         /* DRAWING PORTION */
@@ -652,13 +652,13 @@ int main(int argc, char **argv) {
             }
         } else {
             // if XX% of the board is dead, add more cells
-            if (dead/total >= restock_thresh && !(args->flags & NO_RESTOCK)) {
+            if (dead/total >= restock_thresh && !(args->flags & NO_RESTOCK) && clear == false) {
                 add_random(cur_board.pattern, cur_board.width, cur_board.height, 20);
-                iter_count = 0;
-            }
+                iter_count = 0;            }
         }
         // reset dead count
         dead = 0;
+        clear = false;
 
 
         // Frame timing logic
