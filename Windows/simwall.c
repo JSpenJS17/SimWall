@@ -25,62 +25,95 @@ Heavily abstracted away into not-so-pretty libraries
 #include "langtons_ant/langtons_ant.h"
 
 #define DAEMONIZE   1
-#define CIRCLE      1 << 1
-#define KEYBINDS    1 << 2
-#define BB          1 << 3
-#define CLEAR       1 << 4
-#define NO_RESTOCK  1 << 5
-#define SEEDS       1 << 6
-#define ANT         1 << 7
+#define CIRCLE      (1 << 1)
+#define KEYBINDS    (1 << 2)
+#define BB          (1 << 3)
+#define CLEAR       (1 << 4)
+#define NO_RESTOCK  (1 << 5)
+#define SEEDS       (1 << 6)
+#define ANT         (1 << 7)
 
 
-/* General purpose cmd-line args 
-Can add more later if needed */
-struct Args {
-    RGB alive_color, dead_color, dying_color, ant_color;
+/* General purpose cmd-line args*/
+typedef struct Args {
+    RGBA alive_color, dead_color, dying_color, ant_color;
     unsigned char flags;
-    char* ant_rules;
+    Ant* ants;
+    int num_ants;    
     float framerate;
-};
-typedef struct Args Args;
+} Args;
 
 /* Struct to store board information */
-struct Board {
+typedef struct Board {
     int width, height;
     int* pattern;
-};
-typedef struct Board Board;
+} Board;
 
 // Globals
 int CELL_SIZE = 25;
 void (*fill_func)(int, int, size_t); // x, y, size
 Args* args;
 int cur_color;
+int cur_color;
+RGBA* color_list;
+
+// Langton's Ant specific globals
+size_t num_colors;
+char ruleset[64]; // null-terminated string of rules, max 64 chars
+
 
 void usage() {
     fprintf(stderr, "Usage: simwall [options]\n");
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -h, --help: Show this help message\n");
     fprintf(stderr, "  -D, -d, --daemonize: Daemonize the process\n");
-    fprintf(stderr, "  -dead 000000: Set the dead cell color\n");
-    fprintf(stderr, "  -alive FFFFFF: Set the alive cell color\n");
-    fprintf(stderr, "  -dying 808080: Set the dying cell color\n");
+    fprintf(stderr, "  -dead 000000FF: Set the dead cell color (RGBA)\n");
+    fprintf(stderr, "  -alive FFFFFFFF: Set the alive cell color (RGBA)\n");
+    fprintf(stderr, "  -dying 808080FF: Set the dying cell color (RGBA)\n");
     fprintf(stderr, "  -fps 10.0: Set the framerate\n");
     fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n");
     fprintf(stderr, "  -seeds: Run Seeds instead of Game of Life\n");
     fprintf(stderr, "  -ant: Run Langton's Ant instead of Game of Life\n");
-    fprintf(stderr, "    -ant_rules RLCU: Set the ant ruleset\n");
-    fprintf(stderr, "    -ant_color FF0000: Set the ant color\n");
-    //TODO: Implement these
-    // fprintf(stderr, "    -color_list 000000 808080 FFFFFF ... : Set the color list for states in Langton's Ant")
-    // fprintf(stderr, "    -ants ants.txt: Give input ant locations and directions in a file.\n       Format: x y direction\\n\n");
+    fprintf(stderr, "    -ant_params ant_params.txt: Give ant parameters in a file.\n");
+    fprintf(stderr, "       Format:\n");
+    fprintf(stderr, "         RULESET\n");
+    fprintf(stderr, "         CELL COLOR LIST (RGBA values, space delimited)\n");
+    fprintf(stderr, "         X0 Y0 START_DIRECTION ANT0_COLOR\n");
+    fprintf(stderr, "         X1 Y1 START_DIRECTION ANT1_COLOR\n");
+    fprintf(stderr, "         etc...\n");
+    fprintf(stderr, "       For direction, 0:UP, 1:RIGHT, 2:DOWN, 3:LEFT\n"); // might change to strings that are parsed to the enum later
+    fprintf(stderr, "       For ruleset, R:RIGHT, L:LEFT, C:CONTINUE, U:U-TURN (ex. RLLRCU)\n");
+    fprintf(stderr, "       Cell color list length must be >= to ruleset length\n");
+    fprintf(stderr, "         and can be set to default values by providing the keyword \"default\"\n");
+    fprintf(stderr, "         or \"default_alpha\" for a transparent background\n");
     fprintf(stderr, "  -c: Draw circles instead of a squares\n");
     fprintf(stderr, "  -s 25: Set the cell size in pixels\n");
     fprintf(stderr, "  -nk: Disable keybinds\n");
     fprintf(stderr, "  -nr: No restocking if board is too empty\n");
     fprintf(stderr, "  -clear: Start with a clear board. Includes -nr\n");
-    fprintf(stderr, "Example: simwall -dead FF00FF -alive 00FF00 -fps 7.5\n");
+    fprintf(stderr, "Example: simwall -dead FF00FFFF -alive FFFF00FF -fps 7.5\n");
     exit(1);
+}
+
+int count_lines(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Failed to open file");
+        return -1; // Indicate error
+    }
+
+    int line_count = 0;
+    char ch;
+
+    // Read file character by character
+    while ((ch = fgetc(file)) != EOF) {
+        if (ch == '\n') {
+            line_count++;
+        }
+    }
+
+    fclose(file);
+    return line_count;
 }
 
 Args* parse_args(int argc, char **argv) {
@@ -91,19 +124,27 @@ Args* parse_args(int argc, char **argv) {
     Args* args = malloc(sizeof(Args));
     memset(args, 0, sizeof(Args));
 
+    // define all the simulation flags, used for mutual exclusion later
+    int all_sims = BB | SEEDS | ANT;
+
     // set defaults
     args->flags |= KEYBINDS; // set keybinds to default to on
     args->framerate = 10.0;
+
+    args->alive_color.a = 255;
     args->alive_color.r = 255;
     args->alive_color.g = 255;
     args->alive_color.b = 255;
+
+    args->dead_color.a = 255;
+    args->dead_color.r = 0;
+    args->dead_color.g = 0;
+    args->dead_color.b = 0;
+
+    args->dying_color.a = 255;
     args->dying_color.r = 128;
     args->dying_color.g = 128;
     args->dying_color.b = 128;
-    args->ant_color.r = 255;
-    args->ant_color.g = 0;
-    args->ant_color.b = 0;
-    args->ant_rules = "RL";
 
     // parse the args
     for (int i = 1; i < argc; i++) {
@@ -130,12 +171,12 @@ Args* parse_args(int argc, char **argv) {
             }
             // convert the hex to RGB
             char* dead_color_str = argv[i+1];
-            if (strlen(dead_color_str) != 6) {
+            if (strlen(dead_color_str) != 8) {
                 fprintf(stderr, "Invalid color: %s\n", dead_color_str);
                 usage();
             }
-            // Use sscanf to convert hex to RGB
-            sscanf(dead_color_str, "%2hx%2hx%2hx", &args->dead_color.r, &args->dead_color.g, &args->dead_color.b);
+            // Use sscanf to convert hex to RGBA
+            sscanf(dead_color_str, "%2hx%2hx%2hx%2hx", &args->dead_color.r, &args->dead_color.g, &args->dead_color.b, &args->dead_color.a);
             i++; // increment i to simulate parsing the hex string
         }
         // dying color
@@ -144,14 +185,14 @@ Args* parse_args(int argc, char **argv) {
                 fprintf(stderr, "Not enough arguments for -dying\n");
                 usage();
             }
-            // convert the hex to RGB
+            // convert the hex to RGBA
             char* dying_color_str = argv[i+1];
-            if (strlen(dying_color_str) != 6) {
+            if (strlen(dying_color_str) != 8) {
                 fprintf(stderr, "Invalid color: %s\n", dying_color_str);
                 usage();
             }
-            // Use sscanf to convert hex to RGB
-            sscanf(dying_color_str, "%2hx%2hx%2hx", &args->dying_color.r, &args->dying_color.g, &args->dying_color.b);
+            // Use sscanf to convert hex to RGBA
+            sscanf(dying_color_str, "%2hx%2hx%2hx%2hx", &args->dying_color.r, &args->dying_color.g, &args->dying_color.b, &args->dying_color.a);
             i++; // increment i to simulate parsing the hex string
         }
         // alive color
@@ -160,14 +201,14 @@ Args* parse_args(int argc, char **argv) {
                 fprintf(stderr, "Not enough arguments for -alive\n");
                 usage();
             }
-            // convert the hex to RGB
+            // convert the hex to RGBA
             char* alive_color_str = argv[i+1];
-            if (strlen(alive_color_str) != 6) {
+            if (strlen(alive_color_str) != 8) {
                 fprintf(stderr, "Invalid color: %s\n", alive_color_str);
                 usage();
             }
-            // Use sscanf to convert hex to RGB
-            sscanf(alive_color_str, "%2hx%2hx%2hx", &args->alive_color.r, &args->alive_color.g, &args->alive_color.b);
+            // Use sscanf to convert hex to RGBA
+            sscanf(alive_color_str, "%2hx%2hx%2hx%2hx", &args->alive_color.r, &args->alive_color.g, &args->alive_color.b, &args->alive_color.a);
             i++; // increment i to simulate parsing the hex string
         } 
         // framerate
@@ -188,30 +229,128 @@ Args* parse_args(int argc, char **argv) {
             CELL_SIZE = atoi(argv[i+1]);
             i += 1;
         }
-        // langton's ant ruleset
-        else if (strcmp(argv[i], "-ant_rules") == 0) {
+       // ant params file
+        else if (strcmp(argv[i], "-ant_params") == 0) {
+            // make sure we have enough args
             if (i + 1 >= argc) {
-                fprintf(stderr, "Not enough arguments for -ant_rules\n");
+                fprintf(stderr, "Not enough arguments for -ant_params\n");
                 usage();
             }
-            args->ant_rules = argv[i+1];
+            
+            // open the file
+            FILE* ants_file = fopen(argv[i+1], "r");
+            if (!ants_file) {
+                fprintf(stderr, "Could not open file: %s\n", argv[i+1]);
+                usage();
+            }
+
+            // read the ruleset
+            if (fgets(ruleset, 64, ants_file) == NULL) {
+                fprintf(stderr, "Failed to read from file or EOF reached.\n");
+                usage();
+            }
+            ruleset[strlen(ruleset) - 1] = '\0'; // Ensure null-terminated, also remove newline
+
+            // read the color list line
+            char color_list_str[512];
+            if (fgets(color_list_str, 512, ants_file) == NULL) {
+                fprintf(stderr, "Failed to read from file or EOF reached.\n");
+                usage();
+            } 
+            color_list_str[strlen(color_list_str)-1] = '\0'; // remove the newline
+            
+            // parse the color list
+            char* color_str = strtok(color_list_str, " ");
+
+            // how many colors there SHOULD be
+            num_colors = strlen(ruleset);
+            // allocate space for the color list
+            color_list = (RGBA*)malloc(num_colors * sizeof(RGBA));
+
+            // check if it should be default colors
+            bool use_defaults = false;
+            bool use_alpha = false;
+            // check if they wanted alpha background
+            if (strcmp(color_str, "default_alpha") == 0) {
+                use_alpha = true;
+            }
+
+            // then, if they wanted default colors at all
+            if (strcmp(color_str, "default") == 0 || use_alpha) {
+                // default colors
+                use_defaults = true;
+                // define step size to be equal steps between 0 and 255
+                    // num_colors-1 ensure background is black and fully on is white
+                int step_size = 255 / (num_colors-1);
+                for (int j = 0; j < num_colors; j++) {
+                    // otherwise, set the color to be a shade of gray
+                    color_list[j] = (RGBA){255, j*step_size, j*step_size, j*step_size};
+                }
+                if (use_alpha) {
+                    // set the background color to be transparent instead of black
+                    color_list[0] = (RGBA){0, 0, 0, 0};   
+                }
+            }
+
+
+            // if we're not using the default colors, i.e. they gave us some
+            if (!use_defaults) {
+                // if there are too many colors, skip em!
+                for (int j = 0; j < num_colors; j++) {
+                    // check for errors
+                    if (color_str == NULL) { // not enough colors
+                        fprintf(stderr, "Color list too short\n");
+                        usage();
+                    }
+                    if (strlen(color_str) != 8) { // not a valid color
+                        fprintf(stderr, "Invalid color: %s\n", color_str);
+                        usage();
+                    }
+
+                    // convert the hex to RGBA
+                    sscanf(color_str, "%2hx%2hx%2hx%2hx", &color_list[j].r, &color_list[j].g, &color_list[j].b, &color_list[j].a);
+                    // get the next color
+                    // not 100% on why the NULL is needed here instead of color_list_str, but it is
+                    color_str = strtok(NULL, " ");
+                }
+            }
+
+            // set dead color because it's used as window background
+            args->dead_color = color_list[0];
+
+            // read the number of ants
+            args->num_ants = count_lines(argv[i+1])-2;
+            if (args->num_ants <= 0) {
+                fprintf(stderr, "Invalid ant file: %s\n", argv[i+1]);
+                usage();
+            }
+
+            // allocate space for the ants
+            args->ants = (Ant*)malloc(args->num_ants * sizeof(Ant));
+            // read the ants
+            for (int j = 0; j < args->num_ants; j++) {
+                Ant ant;
+                char line[256];
+                // read in a line
+                if (fgets(line, 256, ants_file) == NULL) {
+                    fprintf(stderr, "Failed to read from file or EOF reached.\n");
+                    usage();
+                }
+                // parse the line
+                int num = sscanf(line, "%d %d %d %2hx%2hx%2hx%2hx\n",
+                            &ant.x, &ant.y, (int*)&ant.direction,
+                            &ant.color.r, &ant.color.g, &ant.color.b, &ant.color.a);
+                // check for errors (lightly, not a full check)
+                if (num != 7) {
+                    fprintf(stderr, "Invalid ant line: %s\n", line);
+                    usage();
+                }
+                // add the ant to the list
+                args->ants[j] = ant;
+            }
+            // remember to close the file
+            fclose(ants_file);
             i += 1;
-        }
-        // langton's ant color
-        else if (strcmp(argv[i], "-ant_color") == 0) {
-            if (i + 1 >= argc) {
-                fprintf(stderr, "Not enough arguments for -ant_color\n");
-                usage();
-            }
-            // convert the hex to RGB
-            char* ant_color_str = argv[i+1];
-            if (strlen(ant_color_str) != 6) {
-                fprintf(stderr, "Invalid color: %s\n", ant_color_str);
-                usage();
-            }
-            // Use sscanf to convert hex to RGB
-            sscanf(ant_color_str, "%2hx%2hx%2hx", &args->ant_color.r, &args->ant_color.g, &args->ant_color.b);
-            i++; // increment i to simulate parsing the hex string
         }
         // disable keybinds
         else if (strcmp(argv[i], "-nk") == 0) {
@@ -219,15 +358,15 @@ Args* parse_args(int argc, char **argv) {
         }
         // brians brain
         else if (strcmp(argv[i], "-bb") == 0) {
-            args->flags |= BB;
+            args->flags = (args->flags & ~all_sims) | BB;
         }
         // seeds
         else if (strcmp(argv[i], "-seeds") == 0) {
-            args->flags |= SEEDS;
+            args->flags = (args->flags & ~all_sims) | SEEDS;
         }
         // langton's ant
         else if (strcmp(argv[i], "-ant") == 0) {
-            args->flags |= ANT;
+            args->flags = (args->flags & ~all_sims) | ANT;
             args->flags |= NO_RESTOCK;
         }
         // clear start
@@ -264,7 +403,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-        // parse arguments
+    // parse arguments
     args = parse_args(argc, argv);
 
     // daemonize if they asked for it
@@ -325,8 +464,8 @@ int main(int argc, char **argv) {
 
     // GAME TIME!!!    
     Board cur_board;
-    cur_board.height = screen_height() / CELL_SIZE;
-    cur_board.width = screen_width() / CELL_SIZE;
+    cur_board.height = screen_height() / CELL_SIZE + 1;
+    cur_board.width = screen_width() / CELL_SIZE + 1;
     
     // Set up the board with random start
     cur_board.pattern = (*gen_random)(cur_board.width, cur_board.height, 20);
@@ -338,25 +477,42 @@ int main(int argc, char **argv) {
     float dead = 0;
     const float total = cur_board.width * cur_board.height;
 
-    // set up the ants
-    // have to define these outside of the if
-    int num_ants;
-    Ant* ants;
+   if (args->flags & ANT) {
+        // do ant things
+        if (!args->ants) {
+            // Default ant
+            args->num_ants = 1;
+            args->ants = (Ant*)malloc(sizeof(Ant));
+            args->ants[0].x = cur_board.width / 2;
+            args->ants[0].y = cur_board.height / 2;
+            args->ants[0].direction = UP;
+            args->ants[0].color = (RGBA){255, 255, 0, 0};
 
-    if (args->flags & ANT) {
-        // instantiate ant-related values
-        // WIP, need custom input .txt file implementation
-        num_ants = 1;
-        ants = (Ant*)malloc(num_ants * sizeof(Ant));
-        for (int i = 0; i < num_ants; i++) {
-            ants[i] = (Ant){.x = cur_board.width/2+i, .y = cur_board.height/2+i, .direction = 0};
+            // Default color list
+            color_list = (RGBA*)malloc(2 * sizeof(RGBA));
+            color_list[0] = (RGBA){255, 0, 0, 0};
+            color_list[1] = (RGBA){255, 255, 255, 255};
+            num_colors = 2;
+
+            // Default ruleset
+            ruleset[0] = 'R';
+            ruleset[1] = 'L';
+            ruleset[2] = '\0';
         }
-        init_ants(ants, 1, args->ant_rules);
+        // Initialize the ants
+        init_ants(args->ants, args->num_ants, ruleset);
+    } else {
+        num_colors = 3;
+        color_list = (RGBA*)malloc(3 * sizeof(RGBA));
+        color_list[0] = args->dead_color;
+        color_list[1] = args->alive_color;
+        color_list[2] = args->dying_color;
     }
+
 
     // set the color to the background color
     int num_colors = 3;
-    RGB color_list[] = {args->dead_color, 
+    RGBA color_list[] = {args->dead_color, 
                         args->alive_color, 
                         args->dying_color}; // can add more potentially
     color(color_list[cur_color]);
@@ -366,26 +522,30 @@ int main(int argc, char **argv) {
     int iter_count = 0;
 
 // Main loop
-DWORD start_time = GetTickCount();
 int frame_duration = 1000 / args->framerate;  // Frame duration based on the framerate
 
 while (1) {
     DWORD frame_start = GetTickCount();  // Start of the frame
 
+    //Handle Hot keys
     MSG msg;
+    //Check for messages
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
+    //Quit when Ctrl+Alt+Q is pressed
     if (msg.message == WM_QUIT) {
         break;
     }
 
+    //Pause when Ctrl+Alt+P is pressed
     if (paused){
         continue;       //Skip the drawing loop if paused
     }
 
-    if (add_mode){
+    //Enter add mode when Ctrl+Alt+A is pressed and ants is not active
+    if (add_mode && !(args->flags & ANT)){
         if (is_lmb_pressed()) {
             //set the color to the alive color
             color(args->alive_color);
@@ -452,10 +612,10 @@ while (1) {
         // Handle drawing ants over the now completed board
         if (args->flags & ANT) {
             // Loop through the ants and draw them
-            color(args->ant_color);
             cur_color = -1; // dummy value to let us know we need to reset the color
-            for (int ant_index = 0; ant_index < num_ants; ant_index++) {
-                Ant ant = ants[ant_index];
+            for (int ant_index = 0; ant_index < args->num_ants; ant_index++) {
+                Ant ant = args->ants[ant_index];
+                color(args->ants[ant_index].color);
                 fill_func(ant.x, ant.y, CELL_SIZE);
             }
         }
@@ -466,11 +626,10 @@ while (1) {
         free(cur_board.pattern);
         cur_board.pattern = next_pattern;
 
-        // increment iter count
-        iter_count++;
-
         // check if we need to add more cells
         if (args->flags & SEEDS) {
+            // increment iter count
+             iter_count++;
             // if iter count too high
             if (iter_count >= 100 && !(args->flags & NO_RESTOCK)) {
                 int* next_pattern = gen_random(cur_board.width, cur_board.height, 20);
@@ -498,9 +657,12 @@ while (1) {
     }
 
     // cleanup
-    free(args);
+
     free(cur_board.pattern);
     cleanup();
+    free(color_list);
+    free(args->ants);
+    free(args);
     return 0;
 }
 

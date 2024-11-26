@@ -53,22 +53,17 @@ int screen_height() {
     return GetSystemMetrics(SM_CYSCREEN)*3/2;
 }
 
-int rgb_to_int(RGB rgb) {
-    /* Converts an RGB struct to an int for X11 compatibility */
-    return rgb.r << 16 | rgb.g << 8 | rgb.b;
-}
-
-void color(RGB rgb) {
+void color(RGBA rgba) {
     /* Sets foreground paint color using RGB struct */
     
     // Change the pen color
-    SetDCPenColor(hdc, RGB(rgb.r, rgb.g, rgb.b));
+    SetDCPenColor(hdc, RGB(rgba.r, rgba.g, rgba.b));
     
     // Change the brush color
     if (hBrush) {
         DeleteObject(hBrush);
     }
-    hBrush = CreateSolidBrush(RGB(rgb.r, rgb.g, rgb.b));
+    hBrush = CreateSolidBrush(RGB(rgba.r, rgba.g, rgba.b));
     SelectObject(hdc, hBrush);
 
 }
@@ -184,7 +179,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 
 // Sets up a window with the specified background color
-HWND window_setup(RGB bg_color) {
+HWND window_setup(RGBA bg_color) {
     WNDCLASS wc = {0};
     wc.lpszClassName = NAME;
     wc.hInstance = GetModuleHandle(NULL);

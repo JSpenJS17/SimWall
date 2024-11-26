@@ -176,7 +176,7 @@ Args* parse_args(int argc, char **argv) {
                 fprintf(stderr, "Invalid color: %s\n", dead_color_str);
                 usage();
             }
-            // Use sscanf to convert hex to ARGB
+            // Use sscanf to convert hex to RGBA
             sscanf(dead_color_str, "%2hx%2hx%2hx%2hx", &args->dead_color.r, &args->dead_color.g, &args->dead_color.b, &args->dead_color.a);
             i++; // increment i to simulate parsing the hex string
         }
@@ -186,13 +186,13 @@ Args* parse_args(int argc, char **argv) {
                 fprintf(stderr, "Not enough arguments for -dying\n");
                 usage();
             }
-            // convert the hex to ARGB
+            // convert the hex to RGBA
             char* dying_color_str = argv[i+1];
             if (strlen(dying_color_str) != 8) {
                 fprintf(stderr, "Invalid color: %s\n", dying_color_str);
                 usage();
             }
-            // Use sscanf to convert hex to ARGB
+            // Use sscanf to convert hex to RGBA
             sscanf(dying_color_str, "%2hx%2hx%2hx%2hx", &args->dying_color.r, &args->dying_color.g, &args->dying_color.b, &args->dying_color.a);
             i++; // increment i to simulate parsing the hex string
         }
@@ -202,13 +202,13 @@ Args* parse_args(int argc, char **argv) {
                 fprintf(stderr, "Not enough arguments for -alive\n");
                 usage();
             }
-            // convert the hex to ARGB
+            // convert the hex to RGBA
             char* alive_color_str = argv[i+1];
             if (strlen(alive_color_str) != 8) {
                 fprintf(stderr, "Invalid color: %s\n", alive_color_str);
                 usage();
             }
-            // Use sscanf to convert hex to ARGB
+            // Use sscanf to convert hex to RGBA
             sscanf(alive_color_str, "%2hx%2hx%2hx%2hx", &args->alive_color.r, &args->alive_color.g, &args->alive_color.b, &args->alive_color.a);
             i++; // increment i to simulate parsing the hex string
         } 
@@ -308,7 +308,7 @@ Args* parse_args(int argc, char **argv) {
                         usage();
                     }
 
-                    // convert the hex to ARGB
+                    // convert the hex to RGBA
                     sscanf(color_str, "%2hx%2hx%2hx%2hx", &color_list[j].r, &color_list[j].g, &color_list[j].b, &color_list[j].a);
                     // get the next color
                     // not 100% on why the NULL is needed here instead of color_list_str, but it is
@@ -526,7 +526,6 @@ int main(int argc, char **argv) {
     float dead = 0;
     const float total = cur_board.width * cur_board.height;
 
-    // set the color to the background color
     if (args->flags & ANT) {
         // do ant things
         if (!args->ants) {
@@ -558,7 +557,8 @@ int main(int argc, char **argv) {
         color_list[1] = args->alive_color;
         color_list[2] = args->dying_color;
     }
-    
+
+    // set the color to the background color
     color(color_list[cur_color]);
     cur_color = DEAD;    
 
@@ -656,7 +656,6 @@ int main(int argc, char **argv) {
 
     // cleanup, not that this is reachable
     cleanup();
-    x11_cleanup();
     return 0;
 }
 

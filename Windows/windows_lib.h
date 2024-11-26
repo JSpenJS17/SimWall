@@ -18,13 +18,16 @@ typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned long ulong;
 
-/* Generic RGB struct */
-struct RGB {
-    ushort r;
-    ushort g;
-    ushort b;
-};
-typedef struct RGB RGB;
+#ifndef RGBA_S
+#define RGBA_S
+/* Generic RGBA struct */
+typedef struct RGBA {
+    unsigned short r;
+    unsigned short g;
+    unsigned short b;
+    unsigned short a;
+} RGBA;
+#endif
 
 /* Generic POS struct */
 struct POS {
@@ -37,19 +40,10 @@ typedef struct POS POS;
 void cleanup();
 void fill_cell(int x, int y, int size);
 void fill_circle(int x, int y, int size);
-void color(RGB rgb);
-int rgb_to_int(RGB rgb);
-HWND window_setup(RGB bg_color);
+void color(RGBA rgba);
+HWND window_setup(RGBA bg_color);
 int screen_width();
 int screen_height();
-void raise_window();
-void lower_window();
-void flush();
-bool check_for_keybind(char* key);
-bool wait_for_keybind(char* key);
-HWND get_window();
-void focus_window();
-void unfocus_window();
 POINT get_mouse_pos();
 bool is_lmb_pressed();
 HWND GetDesktopWorker();

@@ -41,12 +41,15 @@ int* ant_gen_next(int* grid, int width, int height) {
             case RIGHT: ants[i].x++; break;
             case DOWN: ants[i].y++; break;
             case LEFT: ants[i].x--; break;
+            default:
+                fprintf(stderr, "Invalid direction\n");
+                exit(1);
         }
         
         // Wrap around edges
         ants[i].x = (ants[i].x + width) % width;
         ants[i].y = (ants[i].y + height) % height;
-
+        
     }
     int* new_grid = (int*)malloc(width * height * sizeof(int));
     memcpy(new_grid, grid, width * height * sizeof(int));
