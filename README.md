@@ -37,8 +37,7 @@ After it's done building, there will be an executable file in the `electron/sim_
 | Framerate       | `-fps`         | 10.0          | Set the framerate (float value) |
 | Brian's Brain   | `-bb`          | False         | Run Brian's Brain instead of Game of Life |
 | Seeds           | `-seeds`       | False         | Run Seeds instead of Game of Life |
-| Langton's Ant   | `-ant`         | False         | Run Langton's Ant instead of Game of Life |
-| Ant Parameters  | `-ant_params`  | ants.txt      | Give input ruleset, color list, ant locations, color, and directions as a .txt file |
+| Langton's Ant   | `-ant <ants_file>`| False, None| Run Langton's Ant instead of Game of Life. Ants file optional. Example ants files can be found in the SimWall root directory. |
 | Circles         | `-c`           | False         | Draw circles instead of squares |
 | Cell Size       | `-s`           | 25            | Set the cell size in pixels |
 | No Keybinds     | `-nk`          | False         | Disables keybinds|
