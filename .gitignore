@@ -5,3 +5,4 @@ simwall
 electron/sim_wall/dist/*
 electron/sim_wall/node_modules/*
 node_modules/*
+*.exe
