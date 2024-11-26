@@ -267,6 +267,12 @@ HWND window_setup(RGBA bg_color) {
     size = (SIZE){screen_width(), screen_height()};
     blend = (BLENDFUNCTION){AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
 
+    // fill the whole window with the background color given
+    color(bg_color);
+    for (int i = 0; i < screen_width() * screen_height(); ++i) {
+        pixels[i] = cur_color;
+    }
+
     // Update the window
     update_window();
 
