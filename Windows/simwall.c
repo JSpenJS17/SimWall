@@ -572,6 +572,7 @@ int main(int argc, char **argv) {
             if (is_lmb_pressed()) {
                 //set the color to the alive color
                 color(args->alive_color);
+                cur_color = ALIVE;
                 // get the mouse position
                 POINT mouse_pos = get_mouse_pos();
                 int x = mouse_pos.x / CELL_SIZE;
