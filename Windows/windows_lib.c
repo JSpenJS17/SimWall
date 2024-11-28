@@ -200,8 +200,8 @@ HWND window_setup(RGBA bg_color) {
     wc.hbrBackground = CreateSolidBrush(RGB(bg_color.r, bg_color.g, bg_color.b));
 
     // set screen width and height
-    pix_width = GetSystemMetrics(SM_CXSCREEN)*3/2;
-    pix_height = GetSystemMetrics(SM_CYSCREEN)*3/2;
+    pix_width = GetSystemMetrics(SM_CXSCREEN);
+    pix_height = GetSystemMetrics(SM_CYSCREEN);
 
     // Register the window class
     if (!RegisterClass(&wc)) {

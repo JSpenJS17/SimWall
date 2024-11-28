@@ -533,13 +533,8 @@ int main(int argc, char **argv) {
 
 
     // set the color to the background color
-    int num_colors = 3;
-    RGBA* color_list = (RGBA*)malloc(num_colors * sizeof(RGBA));
-    color_list[0] = args->dead_color;
-    color_list[1] = args->alive_color;
-    color_list[2] = args->dying_color;
-    color(color_list[cur_color]);
     cur_color = DEAD;    
+    color(color_list[cur_color]);
 
     // define iter count
     int iter_count = 0;
@@ -547,6 +542,7 @@ int main(int argc, char **argv) {
     // Main loop
     int frame_duration = 1000 / args->framerate;  // Frame duration based on the framerate
 
+    printf("Your screen is %d cells wide and %d cells tall\n", cur_board.width, cur_board.height);
     while (1) {
         DWORD frame_start = GetTickCount();  // Start of the frame
 
