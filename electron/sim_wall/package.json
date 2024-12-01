@@ -12,10 +12,9 @@
   },
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder build"
+    "build": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder build"
   },
   "build": {
-    "appId": "com.holdenvail.simwall",
     "mac": {
       "icon": "./assets/icon.icns",
       "category": "public.app-category.utilities"
