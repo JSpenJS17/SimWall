@@ -2,11 +2,19 @@
 
 const { kill } = require('process');
 const { ipcRenderer } = require('electron');
+const path = require('path');
 
-// vars **CHANGE THESE AS THE PROGRAM STRUCTURE CHANGES**
-let macPath = '../../MacOS/execs/SimWall'
-let linuxPath = '../../Linux/simwall'
-let windowsPath = '../../simwall.exe'
+// uncomment this block for final builds. make sure to comment out other paths
+/*
+let macPath = path.join(process.resourcesPath, 'execs', 'mac', 'SimWall');
+let linuxPath = path.join(process.resourcesPath, 'execs', 'linux', 'SimWall');
+let windowsPath = path.join(process.resourcesPath, 'execs', 'windows', 'SimWall');
+*/
+
+let macPath = "./execs/mac/SimWall"
+let linuxPath = "./execs/linux/SimWall"
+let windowsPath = "./execs/linux/SimWall"
+
 
 // default vars
 let settings = [

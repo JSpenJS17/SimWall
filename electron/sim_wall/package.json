@@ -25,6 +25,13 @@
     "directories": {
       "output": "dist",
       "buildResources": "assets"
+    },
+    "extraResources": {
+      "from": "execs",
+      "to": "execs"
     }
+  },
+  "dependencies": {
+    "electron-is-dev": "^3.0.1"
   }
 }
