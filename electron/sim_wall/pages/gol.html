@@ -1,9 +1,63 @@
 <!--gol.html-->
 
+<h1 class="title is-1 has-text-centered">Game of Life</h1>
+
 <div class="column is-centered">
     <div class="is-flex is-flex-direction-column">
-        <button class="button is-success is-dark mb-2" onclick="callExec()">Use Random</button>
+
+        <h3 class="title is-5 has-text-centered">Select Alive Color</h3>
+        <div class="buttons is-flex is-centered">
+            <label for="aliveColorRed">Red</label>
+            <input type="range" id="aliveColorRed" min="0" max="255" value="255" oninput="updateRGBAColor('aliveColor')">
+            <label for="aliveColorGreen">Green</label>
+            <input type="range" id="aliveColorGreen" min="0" max="255" value="255" oninput="updateRGBAColor('aliveColor')">
+            <label for="aliveColorBlue">Blue</label>
+            <input type="range" id="aliveColorBlue" min="0" max="255" value="255" oninput="updateRGBAColor('aliveColor')">
+            <label for="aliveColorAlpha">Transparency</label>
+            <input type="range" id="aliveColorAlpha" min="0" max="255" value="255" oninput="updateRGBAColor('aliveColor')">
+            <button id="aliveColorButton" class="button is-large" style="background-color: rgba(255, 255, 255, 1);">           </button>
+        </div>
+
+        <h3 class="title is-5 has-text-centered">Select Dead Color</h3>
+        <div class="buttons is-flex is-centered">
+            <label for="deadColorRed">Red</label>
+            <input type="range" id="deadColorRed" min="0" max="255" value="0" oninput="updateRGBAColor('deadColor')">
+            <label for="deadColorGreen">Green</label>
+            <input type="range" id="deadColorGreen" min="0" max="255" value="0" oninput="updateRGBAColor('deadColor')">
+            <label for="deadColorBlue">Blue</label>
+            <input type="range" id="deadColorBlue" min="0" max="255" value="0" oninput="updateRGBAColor('deadColor')">
+            <label for="deadColorAlpha">Transparency</label>
+            <input type="range" id="deadColorAlpha" min="0" max="255" value="255" oninput="updateRGBAColor('deadColor')">
+            <button id="deadColorButton" class="button is-large" style="background-color: rgba(0, 0, 0, 1);">           </button>
+        </div>
+
+        <div class="is-centered has-text-centered">
+            <div class="field">
+                <label class="checkbox">
+                    <input type="checkbox" id="circlesCheckbox" oninput="toggler('circles')">
+                    Circles
+                </label>
+            </div>
+            <div class="field">
+                <label class="checkbox">
+                    <input type="checkbox" id="restockingCheckbox" oninput="toggler('noRestocking')" checked>
+                    Restocking
+                </label>
+            </div>
+            <div class="field">
+                <label for="frameRateSlider">Frame Rate</label>
+                <input type="range" id="frameRateSlider" min="1" max="120" value="10" oninput="updateFrameRateValue(this.value)">
+                <span id="frameRateValue">10</span>
+            </div>
+            <div class="field">
+                <label for="cellSizeSlider">Cell Size</label>
+                <input type="range" id="cellSizeSlider" min="5" max="150" value="25" oninput="updateCellSizeValue(this.value)">
+                <span id="cellSizeValue">25</span>
+            </div>
+        </div>
+        
+        <button class="button is-success is-dark mb-2" onclick="callExec()">Start</button>
         <button class="button is-danger is-dark mb-2" onclick="killProcess()">Stop</button>
-        <button class="button is-dark mb-2" onclick="changeContent('menu')"">Go Home</button>
+        <button class="button is-dark mb-2" onclick="changeContent('menu')">Go Home</button>
     </div>
 </div>

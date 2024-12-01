@@ -1,15 +1,17 @@
 // main.js
 
 // Modules to control application life and create native browser window
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('node:path')
 const { contextIsolated } = require('node:process')
 
+let mainWindow;
+
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 700,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true,
@@ -43,3 +45,11 @@ app.on('window-all-closed', () => {
 
 // Normal main code below, if needed. 
 // *Note* Functions that alter the DOM should be in renderer.js or the respective .js files
+
+
+// listen for event from exit button on menu
+ipcMain.on('close-window', () => {
+  if (mainWindow) {
+    mainWindow.close();
+  }
+})

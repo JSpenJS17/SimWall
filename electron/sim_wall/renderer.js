@@ -1,11 +1,12 @@
 // renderer.js
 
 const { kill } = require('process');
+const { ipcRenderer } = require('electron');
 
-// vars
+// vars **CHANGE THESE AS THE PROGRAM STRUCTURE CHANGES**
 let macPath = '../../MacOS/execs/SimWall'
-let linuxPath = '../../Linux/exec'
-let windowsPath = '../../Windows/exec'
+let linuxPath = '../../Linux/simwall'
+let windowsPath = '../../simwall.exe'
 
 // default vars
 let settings = [
@@ -24,10 +25,13 @@ let settings = [
     ['fps', 10.0]
 ];
 
+let default_settings = JSON.parse(JSON.stringify(settings));
+
 let childProcess = null;
 
 // functions
 function changeContent(page) {
+    settings = JSON.parse(JSON.stringify(default_settings));
     var contentDiv = document.getElementById('contentDiv');
     fetch(`pages/${page}.html`)
         .then(response => response.text())
@@ -78,8 +82,17 @@ function changeContent(page) {
 
 function setter(valueName, value) {
     for (let i = 0; i < settings.length; i++) {
-        if (settings[i][0] === valueName) {
+        if (settings[i][0] == valueName) {
             settings[i][1] = value;
+            break;
+        }
+    }
+}
+
+function toggler(valueName) {
+    for (let i = 0; i < settings.length; i++) {
+        if (settings[i][0] == valueName) {
+            settings[i][1] = !settings[i][1];
             break;
         }
     }
@@ -153,6 +166,8 @@ function callExec() {
 
     // Execute the command using Node's child_process
     const { exec } = require('child_process');
+const { remote } = require('electron');
+const { ipcRenderer } = require('electron');
     
     // if other process has started, kill it first
     if (childProcess) {
@@ -188,5 +203,30 @@ function killProcess() {
     }
 }
 
-// things to do (on startup)
+function updateRGBAColor(type) {
+    const red = parseInt(document.getElementById(type + 'Red').value).toString(16).padStart(2, '0');
+    const green = parseInt(document.getElementById(type + 'Green').value).toString(16).padStart(2, '0');
+    const blue = parseInt(document.getElementById(type + 'Blue').value).toString(16).padStart(2, '0');
+    const alpha = Math.round((document.getElementById(type + 'Alpha').value / 255) * 255).toString(16).padStart(2, '0');
+    const rgbaColor = `rgba(${parseInt(red, 16)}, ${parseInt(green, 16)}, ${parseInt(blue, 16)}, ${parseInt(alpha, 16) / 255})`;
+    document.getElementById(type + 'Button').style.backgroundColor = rgbaColor;
+    const rgbaColorHex = `${red}${green}${blue}${alpha}`;
+    setter(type, rgbaColorHex);
+}
+
+function updateFrameRateValue(value) {
+    document.getElementById('frameRateValue').textContent = value;
+    setter('fps', value);
+}
+
+function updateCellSizeValue(value) {
+    document.getElementById('cellSizeValue').textContent = value;
+    setter('cellSize', value);
+}
+
+function closeWindow() {
+    ipcRenderer.send('close-window');
+}
+
+// things to do (on startup or statically)
 changeContent('menu')
