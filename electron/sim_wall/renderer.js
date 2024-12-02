@@ -13,7 +13,7 @@ let windowsPath = path.join(process.resourcesPath, 'execs', 'windows', 'SimWall'
 
 let macPath = "./execs/mac/SimWall"
 let linuxPath = "./execs/linux/SimWall"
-let windowsPath = "./execs/linux/SimWall"
+let windowsPath = "./execs/windows/SimWall"
 
 
 // default vars
