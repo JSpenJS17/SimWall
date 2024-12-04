@@ -2,6 +2,7 @@
 
 const { kill } = require('process');
 const { ipcRenderer } = require('electron');
+const { exec } = require('child_process');
 const path = require('path');
 
 // uncomment this block for final builds. make sure to comment out other paths
@@ -13,7 +14,7 @@ let windowsPath = path.join(process.resourcesPath, 'execs', 'windows', 'SimWall'
 
 let macPath = "./execs/mac/SimWall"
 let linuxPath = "./execs/linux/SimWall"
-let windowsPath = "./execs/windows/SimWall"
+let windowsPath = "execs\\windows\\simwall"
 
 
 // default vars
@@ -173,7 +174,6 @@ function callExec() {
     command = command.trim();
 
     // Execute the command using Node's child_process
-    const { exec } = require('child_process');
 const { remote } = require('electron');
 const { ipcRenderer } = require('electron');
     
@@ -198,10 +198,12 @@ const { ipcRenderer } = require('electron');
 }
 
 function killProcess() {
+    console.log('Killing process');
+
     if (childProcess) {
         try {
             if (process.platform == "win32") {
-                require('child_process').exec(`taskill /pid ${childProcess.pid} /f`);
+                exec(`taskkill /PID ${childProcess.pid} /T /F`);
             } else {
                 process.kill(childProcess.pid);
             }

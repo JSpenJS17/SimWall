@@ -407,21 +407,6 @@ void sigint_handler(int sig) {
 }
 
 int main(int argc, char **argv) {
-    //Using mutex to prevent multiple instances of the program
-    // Create a named mutex
-    HANDLE hMutex = CreateMutex(NULL, TRUE, "SimWallMutex");
-    if (hMutex == NULL) {
-        fprintf(stderr, "Failed to create mutex\n");
-        return 1;
-    }
-
-    // Check if the mutex already exists
-    if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        fprintf(stderr, "Another instance of SimWall is already running\n");
-        CloseHandle(hMutex);
-        return 1;
-    }
-
     // Set up the signal interrupt (ctrl+c) handler
     signal(SIGINT, sigint_handler);
 
@@ -542,7 +527,7 @@ int main(int argc, char **argv) {
     // Main loop
     int frame_duration = 1000 / args->framerate;  // Frame duration based on the framerate
 
-    printf("Your screen is %d cells wide and %d cells tall\n", cur_board.width, cur_board.height);
+    // printf("Your screen is %d cells wide and %d cells tall\n", cur_board.width, cur_board.height);
     while (1) {
         DWORD frame_start = GetTickCount();  // Start of the frame
 

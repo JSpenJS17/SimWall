@@ -74,6 +74,9 @@ int screen_height() {
 
 void color(RGBA rgba) {
     /* Sets foreground paint color using RGB struct */
+    if (rgba.r > rgba.a) { rgba.r = rgba.a; }
+    if (rgba.g > rgba.a) { rgba.g = rgba.a; }
+    if (rgba.b > rgba.a) { rgba.b = rgba.a; }
     cur_color = (rgba.a << 24) | (rgba.r << 16) | (rgba.g << 8) | rgba.b;
 }
 
@@ -200,8 +203,8 @@ HWND window_setup(RGBA bg_color) {
     wc.hbrBackground = CreateSolidBrush(RGB(bg_color.r, bg_color.g, bg_color.b));
 
     // set screen width and height
-    pix_width = GetSystemMetrics(SM_CXSCREEN);
-    pix_height = GetSystemMetrics(SM_CYSCREEN);
+    pix_width = GetSystemMetrics(SM_CXSCREEN) * 3/2;
+    pix_height = GetSystemMetrics(SM_CYSCREEN) * 3/2;
 
     // Register the window class
     if (!RegisterClass(&wc)) {
