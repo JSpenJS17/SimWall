@@ -15,6 +15,10 @@ OUTNAME = $(shell pwd)/simwall_cmd
 # Run the make command in the detected OS directory
 build:
 	@echo ---Building for $(detected_OS)---
-	@$(MAKE) -C $(detected_OS) -f Makefile $(OUTNAME)
+    
+    # Run the make command in the detected OS directory
+	@$(MAKE) -C $(detected_OS) OUTNAME=$(OUTNAME)
+
+    # Copy the executable to the electron directory
 	@mkdir -p electron/sim_wall/execs/$(detected_OS)
 	@cp simwall electron/sim_wall/execs/$(detected_OS)/simwall
