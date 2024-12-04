@@ -38,7 +38,9 @@ struct Background: View {
     var body: some View {
         // A ZStack to set up the background black layer VS the tiles on top
         ZStack {
-            dead_color
+            if !(alive_alpha < 255 || dying_alpha < 255) {
+                dead_color
+            }
 
             // Use Canvas for efficient drawing
             Canvas { context, size in
@@ -47,8 +49,7 @@ struct Background: View {
                 
                 // We have two modes here, one for if the user wants tiles on top of a background
                 // And the other if users want their background to shine through
-                
-                if (false) { // This is the mode for the background shining through // was checking for inverted before
+                if ((alive_alpha < 255 || dying_alpha < 255) && dead_alpha != 0) { // This is the mode for the background shining through // was checking for inverted before
                     for row in 0..<GRID_HEIGHT { // Loops for each row
                         for column in 0..<GRID_WIDTH { // Loops for each column
                             let cellValue = layout[row][column] // Gets the value that the cell should be (mostly 0 or 1, but sometimes 2)
@@ -66,62 +67,61 @@ struct Background: View {
 
                                 let cellColor: Color = dead_color // We set the color to fill it, in this case always black, but may be white if we add dark/light mode detection
                                 context.fill(path, with: .color(cellColor)) // Then we fill it in
-                                context.stroke(path, with: .color(dead_color), lineWidth: 1) // Then we add a stroke aroudn the blocks to avoid any of the desktop from shinig through the seems
+                                context.stroke(path, with: .color(dead_color), lineWidth: 0.5) // Then we add a stroke aroudn the blocks to avoid any of the desktop from shinig through the seems
                             }
                         }
                     }
                     
-                } else { // If the user wants the classic mode of colored tiles on a background
-                    for row in 0..<GRID_HEIGHT { // Same as above, looping through
-                        for column in 0..<GRID_WIDTH { // Loops for the width still as well
-                            var ant_pos: [[Int32]] = []
+                } //else { // If the user wants the classic mode of colored tiles on a background
+                for row in 0..<GRID_HEIGHT { // Same as above, looping through
+                    for column in 0..<GRID_WIDTH { // Loops for the width still as well
+                        var ant_pos: [[Int32]] = []
+                        if simulation == "ant" {
                             for ant in ants {
                                 ant_pos.append([ant.x, ant.y])
                             }
-                            let cellValue = layout[row][column] // Gets the cell value
-                            if (cellValue != 0 || ant_pos.contains([Int32(column), Int32(row)])){ // Now we care about whether the cell is alive, not whether it is dead
-                                // We build our cell the exact same way as above/
-                                let rect = CGRect(
-                                    x: CGFloat(column) * cellSize,
-                                    y: CGFloat(row) * cellSize,
-                                    width: cellSize,
-                                    height: cellSize
-                                )
+                        }
+                        let cellValue = layout[row][column] // Gets the cell value
+                        if (cellValue != 0 || ant_pos.contains([Int32(column), Int32(row)])){ // Now we care about whether the cell is alive, not whether it is dead
+                            // We build our cell the exact same way as above/
+                            let rect = CGRect(
+                                x: CGFloat(column) * cellSize,
+                                y: CGFloat(row) * cellSize,
+                                width: cellSize,
+                                height: cellSize
+                            )
 
-                                // We make our path object
-                                var path: Path
-                                // We check if the user wants circles, or if they want squares
-                                if shape == "circle" { // If they want circles
-                                    path = Path(ellipseIn: rect) // We make the object a circle
-                                } else { // Otherwise,
-                                    path = Path(rect) // We make the object a square
-                                }
-
-                                var cellColor: Color = .white
-                                // We set the color
-                                if simulation == "ant" {
-                                    if ant_pos.contains([Int32(column), Int32(row)]) {
-                                        for ant in ants {
-                                            if row == ant.y && column == ant.x {
-                                                cellColor = ant.color
-                                            }
-                                        }
-                                        
-                                    } else {
-                                        cellColor = ant_colors[cellValue]
-                                    }
-    
-        
-                                } else {
-                                    cellColor = (cellValue == 1) ? alive_color : dying_color // The color is according to the flags, except for cells with the "2" value which are always pink for now
-                                }
-                                context.fill(path, with: .color(cellColor)) // Then we fill it in
+                            // We make our path object
+                            var path: Path
+                            // We check if the user wants circles, or if they want squares
+                            if shape == "circle" { // If they want circles
+                                path = Path(ellipseIn: rect) // We make the object a circle
+                            } else { // Otherwise,
+                                path = Path(rect) // We make the object a square
                             }
+
+                            var cellColor: Color = .white
+                            // We set the color
+                            if simulation == "ant" {
+                                if ant_pos.contains([Int32(column), Int32(row)]) {
+                                    for ant in ants {
+                                        if row == ant.y && column == ant.x {
+                                            cellColor = ant.color
+                                        }
+                                    }
+                                    
+                                } else {
+                                    cellColor = ant_colors[cellValue]
+                                }
+
+                            } else {
+                                cellColor = (cellValue == 1) ? alive_color : dying_color // The color is according to the flags, except for cells with the "2" value which are always pink for now
+                            }
+                            context.fill(path, with: .color(cellColor)) // Then we fill it in
                         }
                     }
                 }
-                
-                
+                //}
             }
             .aspectRatio(16/9, contentMode: .fill) // Sets the aspect ratio for the whole thing to be 16/9 and to fit it in, even if its too small or large
             .ignoresSafeArea() // We don't care if it goes into unclickable sections since we're not able to click on it anyways
@@ -133,6 +133,7 @@ struct Background: View {
                     ants = file_to_ant(path: ants_file)
                 }
             }
+
             // If the user didn't set a starting pattern, we need to generate one randomly
             if start_with_clear_board {
                 layout = makeEmptyBoard(width: GRID_WIDTH, height: GRID_HEIGHT)
@@ -157,14 +158,14 @@ struct Background: View {
             Timer.scheduledTimer(withTimeInterval: 1/fps, repeats: true) { _ in // Timer set to update board based on passed in speed
                 DispatchQueue.global(qos: .userInitiated).async { // Need to use an sync queue to ensure updates happen in the right order
                     iterations += 1 // Up the iteration count
-                    
+                   
                     // For this next section we do a lot of the same thing of generating the next board
                     // By passing in the current board state into converted C functions
                     // We then check if there's enough life left, and if not regenerate
                     // Each simulation has a slightly different way of checking whether a reset is needed
                     // And is disucsesed in each sections's comments
                     // Also, if the original board came from a file, we just reset to that starting state
-                    
+                   
                     if simulation == "brians_brain" {
                         if let nextPattern = bbGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT) {
                             DispatchQueue.main.async {

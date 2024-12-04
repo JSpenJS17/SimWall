@@ -66,7 +66,7 @@ func antGenNext(pattern: [Int32], width: Int, height: Int, ants: inout [Ant]) ->
         case "U":
             ants[i].direction = (ants[i].direction + 2) % 4 // Turn around
         default:
-            print("Invalid rule")
+            break
         }
 
         // Move the ant
