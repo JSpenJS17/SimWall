@@ -6,15 +6,13 @@ const { exec } = require('child_process');
 const path = require('path');
 
 // uncomment this block for final builds. make sure to comment out other paths
-/*
-let macPath = path.join(process.resourcesPath, 'execs', 'mac', 'SimWall');
-let linuxPath = path.join(process.resourcesPath, 'execs', 'linux', 'SimWall');
-let windowsPath = path.join(process.resourcesPath, 'execs', 'windows', 'SimWall');
-*/
+let macPath = path.join(process.resourcesPath, 'execs', 'MacOS', 'simwall_cmd');
+let linuxPath = path.join(process.resourcesPath, 'execs', 'Linux', 'simwall_cmd');
+let windowsPath = path.join(process.resourcesPath, 'execs', 'Windows', 'simwall_cmd');
 
-let macPath = "./execs/mac/SimWall"
-let linuxPath = "./execs/linux/SimWall"
-let windowsPath = "execs\\windows\\simwall"
+// let macPath = "./execs/mac/SimWall"
+// let linuxPath = "./execs/linux/SimWall"
+// let windowsPath = "simwall_cmd.exe"
 
 
 // default vars

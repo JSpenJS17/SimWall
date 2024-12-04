@@ -7,14 +7,18 @@
   "author": "Holden Vail",
   "license": "UNLICENSED",
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "electron": "^33.0.2",
     "electron-builder": "^25.1.8"
   },
   "scripts": {
     "start": "electron .",
-    "build": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder build"
+    "build": "cross-env SC_IDENTITY_AUTO_DISCOVERY=false electron-builder build"
   },
   "build": {
+   "files": [
+      "**/*"
+  ],
     "mac": {
       "icon": "./assets/icon.icns",
       "category": "public.app-category.utilities"
