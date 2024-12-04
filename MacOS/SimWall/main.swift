@@ -145,6 +145,15 @@ for i in 1..<argument_count { // Loops through each arugment (starting w/ 1 sinc
     }
 }
 
+if (simulation == "ant" && ants_file == "") {
+    let num_colors = ants[0].ruleset.count
+    for default_color in 1..<num_colors+1 {
+        let step_size: Double = Double(255) / Double((num_colors-1))
+        let step_color = (Color(red: (Double(default_color) * step_size)/Double(255), green: (Double(default_color) * step_size)/Double(255), blue: (Double(default_color) * step_size)/Double(255)))
+        ant_colors.append(step_color)
+    }
+}
+
 // Starts up the app by setting up our NSApplication
 // Then sets a delegate
 // And runs the app

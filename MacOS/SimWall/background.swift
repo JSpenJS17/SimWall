@@ -26,7 +26,7 @@ func life_remaining(layout: [[Int]], width: Int, height: Int) -> Double {
     return Double(sum) / Double(width * height)
 }
 
-var ants = [Ant(x: Int32(GRID_WIDTH/2), y: Int32(GRID_HEIGHT/2), direction: 0, ruleset: ant_rules, color: hex_string_to_color(from: "FF0000FF"))]
+var ants = [Ant(x: Int32(GRID_WIDTH/2), y: Int32(GRID_HEIGHT/2), direction: 0, ruleset: "RLCU", color: hex_string_to_color(from: "FF0000FF"))]
 
 
 struct Background: View {
@@ -131,6 +131,8 @@ struct Background: View {
             if simulation == "ant" {
                 if ants_file != "" {
                     ants = file_to_ant(path: ants_file)
+                } else {
+                    ants = [Ant(x: Int32(GRID_WIDTH/2), y: Int32(GRID_HEIGHT/2), direction: 0, ruleset: "RLCU", color: hex_string_to_color(from: "FF0000FF"))]
                 }
             }
 

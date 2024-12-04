@@ -137,7 +137,6 @@ func file_to_ant(path: String) -> [Ant] {
     return []
 }
 
-
 func hex_string_to_color(from hex_string: String) -> Color {
     // Get the string
     let red_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 0)..<hex_string.index(hex_string.startIndex, offsetBy: 2)])
