@@ -10,7 +10,16 @@ endif
 
 all: build
 
+BINNAME = simwall_cmd
+OUTNAME = $(shell pwd)/$(BINNAME)
+
 # Run the make command in the detected OS directory
 build:
-	@echo "---Building for $(detected_OS)---\n"
-	@$(MAKE) -C $(detected_OS)
+	@echo ---Building for $(detected_OS)---
+
+    # Run the make command in the detected OS directory
+	@$(MAKE) -C $(detected_OS) OUTNAME=$(OUTNAME)
+
+    # Copy the executable to the electron directory
+	@mkdir -p electron/sim_wall/execs/$(detected_OS)
+	@cp $(OUTNAME) electron/sim_wall/execs/$(detected_OS)/$(BINNAME)

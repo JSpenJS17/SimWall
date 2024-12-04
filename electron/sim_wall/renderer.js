@@ -10,9 +10,9 @@ let macPath = path.join(process.resourcesPath, 'execs', 'MacOS', 'simwall_cmd');
 let linuxPath = path.join(process.resourcesPath, 'execs', 'Linux', 'simwall_cmd');
 let windowsPath = path.join(process.resourcesPath, 'execs', 'Windows', 'simwall_cmd');
 
-// let macPath = "./execs/mac/SimWall"
-// let linuxPath = "./execs/linux/SimWall"
-// let windowsPath = "simwall_cmd.exe"
+// let macPath = "./execs/mac/simwall_cmd"
+// let linuxPath = "./execs/linux/simwall_cmd"
+// let windowsPath = "execs\\windows\\simwall_cmd
 
 
 // default vars
