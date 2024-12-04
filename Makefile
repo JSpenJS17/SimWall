@@ -12,5 +12,5 @@ all: build
 
 # Run the make command in the detected OS directory
 build:
-	@echo "---Building for $(detected_OS)---\n"
+	@echo ---Building for $(detected_OS)---
 	@$(MAKE) -C $(detected_OS)
