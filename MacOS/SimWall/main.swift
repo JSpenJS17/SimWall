@@ -47,6 +47,9 @@ var daemonize = false
 var alive_color: Color = .white
 var dead_color: Color = .black
 var dying_color: Color = .gray
+var alive_alpha: Int = 255
+var dead_alpha: Int = 255
+var dying_alpha: Int = 255
 var fps = 10.0
 var simulation = "game_of_life" // The default simulation is game of life (options are game_of_life, brians_brain, seeds
 var ant_rules = "RL"
@@ -56,7 +59,8 @@ var cell_size = 25
 var disable_keybinds = false
 var disable_restocking = false
 var start_with_clear_board = false
-var ant_colors: [Color] = [.red]
+var ant_colors: [Color] = [.yellow]
+var abort = false
 
 
 var speed = 0.05 // Speed of the game (1/speed = FPS)
@@ -70,14 +74,17 @@ for i in 1..<argument_count { // Loops through each arugment (starting w/ 1 sinc
     case "-alive":
         if i != argument_count - 1 {
             alive_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1]))
+            alive_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1])
         }
     case "-dead":
         if i != argument_count - 1 {
             dead_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1]))
+            dead_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1])
         }
     case "-dying":
         if i != argument_count - 1 {
             dying_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1]))
+            dying_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1])
         }
     case "-fps":
         if i != argument_count - 1 {
@@ -131,16 +138,29 @@ for i in 1..<argument_count { // Loops through each arugment (starting w/ 1 sinc
         }
         print("path: \(path)") // print path for debug
     case "-h":
-        print("HELP GUIDE HERE")
+        help_print()
+        abort = true
     default: // If it's not a flag, just do nothing
         print("") // Swift requires a statement here
+    }
+}
+
+if (simulation == "ant" && ants_file == "") {
+    let num_colors = ants[0].ruleset.count
+    for default_color in 1..<num_colors+1 {
+        let step_size: Double = Double(255) / Double((num_colors-1))
+        let step_color = (Color(red: (Double(default_color) * step_size)/Double(255), green: (Double(default_color) * step_size)/Double(255), blue: (Double(default_color) * step_size)/Double(255)))
+        ant_colors.append(step_color)
     }
 }
 
 // Starts up the app by setting up our NSApplication
 // Then sets a delegate
 // And runs the app
-let app = NSApplication.shared
-let delegate = AppDelegate()
-app.delegate = delegate
-app.run()
+if !abort {
+    let app = NSApplication.shared
+    let delegate = AppDelegate()
+    app.delegate = delegate
+    app.run()
+}
+

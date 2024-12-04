@@ -101,6 +101,29 @@ func file_to_ant(path: String) -> [Ant] {
         for line in lines {
             if index_l == 0 {
                 rule = String(line)
+            } else if index_l == 1 {
+                // COLORS
+                if String(line) == "default" {
+                    let num_colors = rule.count
+                    for default_color in 1..<num_colors+1 {
+                        let step_size: Double = Double(255) / Double((num_colors-1))
+                        let step_color = (Color(red: (Double(default_color) * step_size)/Double(255), green: (Double(default_color) * step_size)/Double(255), blue: (Double(default_color) * step_size)/Double(255)))
+                        ant_colors.append(step_color)
+                    }
+                } else if line == "default_alpha" {
+                    let num_colors = rule.count
+                    for default_color in 1..<num_colors+1 {
+                        let step_size: Double = Double(255) / Double((num_colors-1))
+                        let step_color = (Color(red: (Double(default_color) * step_size)/Double(255), green: (Double(default_color) * step_size)/Double(255), blue: (Double(default_color) * step_size)/Double(255)))
+                        ant_colors.append(step_color)
+                    }
+                    dead_color = hex_string_to_color(from: "00000000")
+                } else {
+                    let args = line.split(separator: " ")
+                    for arg in args {
+                        ant_colors.append(hex_string_to_color(from: String(arg)))
+                    }
+                }
             } else {
                 let args = line.split(separator: " ")
                 let ant = Ant(x: Int32(args[0])!, y: Int32(args[1])!, direction: Int32(args[2])!, ruleset: rule, color: hex_string_to_color(from: String(args[3])))
@@ -113,7 +136,6 @@ func file_to_ant(path: String) -> [Ant] {
     }
     return []
 }
-
 
 func hex_string_to_color(from hex_string: String) -> Color {
     // Get the string
@@ -135,7 +157,9 @@ func hex_string_to_color(from hex_string: String) -> Color {
                 blue_val = Int(value)
                 if let value = UInt8(alpha_hex, radix: 16) {
                     alpha_val = Int(value)
-                    return Color(red: Double(red_val)/255.0, green: Double(green_val)/255.0, blue: Double(blue_val)/255.0, opacity: Double(alpha_val)/255.0)
+                    let nsColor = NSColor(calibratedRed: Double(red_val)/255.0, green: Double(green_val)/255.0, blue: Double(blue_val)/255.0, alpha: Double(alpha_val)/255.0)
+                    let alive_color = Color(nsColor)
+                    return alive_color
                 }
             }
             
@@ -143,3 +167,47 @@ func hex_string_to_color(from hex_string: String) -> Color {
     }
     return .white
     }
+
+func hex_string_to_alpha(from hex_string: String) -> Int {
+    let alpha_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 6)..<hex_string.index(hex_string.startIndex, offsetBy: 8)])
+    var alpha_val: Int
+    if let value = UInt8(alpha_hex, radix: 16) {
+        alpha_val = Int(value)
+        return alpha_val
+    }
+    return 255
+    
+}
+
+func help_print() {
+    print("Usage: simwall [options]\n")
+    print("Options:\n")
+    print("  -h, --help: Show this help message\n")
+    print("  -D, -d, --daemonize: Daemonize the process\n")
+    print("  -dead 000000FF: Set the dead cell color (RGBA)\n")
+    print("  -alive FFFFFFFF: Set the alive cell color (RGBA)\n")
+    print("  -dying 808080FF: Set the dying cell color (RGBA)\n")
+    print("  -fps 10.0: Set the framerate\n")
+    print("  -bb: Run Brian's Brain (BB) instead of Game of Life\n")
+    print("  -seeds: Run Seeds instead of Game of Life\n")
+    print("  -ant <ant_params.txt>: Run Langton's Ant instead of Game of Life.\n")
+    print("                         Ant parameters are optional.\n")
+    print("    -ant_params.txt: Give ant parameters in a file.\n")
+    print("       Format:\n")
+    print("         RULESET\n")
+    print("         CELL COLOR LIST (RGBA values, space delimited)\n")
+    print("         X0 Y0 START_DIRECTION ANT0_COLOR\n")
+    print("         X1 Y1 START_DIRECTION ANT1_COLOR\n")
+    print("         etc...\n")
+    print("       For direction, 0:UP, 1:RIGHT, 2:DOWN, 3:LEFT\n") // might change to strings that are parsed to the enum later
+    print("       For ruleset, R:RIGHT, L:LEFT, C:CONTINUE, U:U-TURN (ex. RLLRCU)\n")
+    print("       Cell color list length must be >= to ruleset length and\n")
+    print("         can be set to default values by providing the keyword \"default\"\n")
+    print("         or \"default_alpha\" for a transparent background\n")
+    print("  -c: Draw circles instead of a squares\n")
+    print("  -s 25: Set the cell size in pixels\n")
+    print("  -nk: Disable keybinds\n")
+    print("  -nr: No restocking if board is too empty\n")
+    print("  -clear: Start with a clear board. Includes -nr\n")
+    print("Example: simwall -dead FF00FFFF -alive FFFF00FF -fps 7.5\n")
+}
