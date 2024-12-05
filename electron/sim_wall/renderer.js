@@ -140,7 +140,7 @@ function callExec() {
             case 'langtonsAnt':
                 if (value) {
                     const filePath = path.join(process.resourcesPath, 'langtonsFile.txt');
-                    command += `-ant -ants ${filePath} `;
+                    command += `-ant ${filePath} `;
                 }
                 break;
             case 'circles':
