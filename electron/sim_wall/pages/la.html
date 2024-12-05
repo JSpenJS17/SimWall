@@ -5,7 +5,7 @@
 <div class="column is-centered">
     <div class="is-flex is-flex-direction-column">
 
-        <h3 class="title is-5 has-text-centered">Select Alive Color</h3>
+        <h3 class="title is-5 has-text-centered">RGBA Calculator</h3>
         <div class="buttons is-flex is-centered">
             <label for="aliveColorRed">Red</label>
             <input type="range" id="aliveColorRed" min="0" max="255" value="255" oninput="updateRGBAColor('aliveColor')">
@@ -17,18 +17,21 @@
             <input type="range" id="aliveColorAlpha" min="0" max="255" value="255" oninput="updateRGBAColor('aliveColor')">
             <button id="aliveColorButton" class="button is-large" style="background-color: rgba(255, 255, 255, 1);">           </button>
         </div>
+        <div class="field is-centered has-text-centered">
+            <label for="aliveColorValue">Current Alive Color:</label>
+            <span id="aliveColorValue">ffffffff</span>
+        </div>
 
-        <h3 class="title is-5 has-text-centered">Select Dead Color</h3>
-        <div class="buttons is-flex is-centered">
-            <label for="deadColorRed">Red</label>
-            <input type="range" id="deadColorRed" min="0" max="255" value="0" oninput="updateRGBAColor('deadColor')">
-            <label for="deadColorGreen">Green</label>
-            <input type="range" id="deadColorGreen" min="0" max="255" value="0" oninput="updateRGBAColor('deadColor')">
-            <label for="deadColorBlue">Blue</label>
-            <input type="range" id="deadColorBlue" min="0" max="255" value="0" oninput="updateRGBAColor('deadColor')">
-            <label for="deadColorAlpha">Transparency</label>
-            <input type="range" id="deadColorAlpha" min="0" max="255" value="255" oninput="updateRGBAColor('deadColor')">
-            <button id="deadColorButton" class="button is-large" style="background-color: rgba(0, 0, 0, 1);">           </button>
+        <div class="buttons is-centered">
+            <button id="antButton1" class="button" onclick="displayExample('1')">Example Ant 1</button>
+            <button id="antButton2" class="button" onclick="displayExample('2')">Example Ant 2</button>
+            <button id="antButton3" class="button" onclick="displayExample('3')">Example Ant 3</button>
+            <button id="antButton4" class="button" onclick="displayExample('4')">Example Ant 4</button>
+            <button id="antButton5" class="button" onclick="displayExample('5')">Example Ant 5</button>
+        </div>
+
+        <div class="field is-centered has-text-centered">
+            <textarea id="antFileContent" rows="15" cols="50"></textarea>
         </div>
 
         <div class="is-centered has-text-centered">
@@ -36,12 +39,6 @@
                 <label class="checkbox">
                     <input type="checkbox" id="circlesCheckbox" oninput="toggler('circles')">
                     Circles
-                </label>
-            </div>
-            <div class="field">
-                <label class="checkbox">
-                    <input type="checkbox" id="restockingCheckbox" oninput="toggler('noRestocking')" checked>
-                    Restocking
                 </label>
             </div>
             <div class="field">
@@ -56,7 +53,7 @@
             </div>
         </div>
         
-        <button class="button is-success is-dark mb-2" onclick="callExec()">Start</button>
+        <button class="button is-success is-dark mb-2" onclick="setLangtonsFile(); callExec();">Start</button>
         <button class="button is-danger is-dark mb-2" onclick="killProcess()">Stop</button>
         <button class="button is-dark mb-2" onclick="changeContent('menu')">Go Home</button>
     </div>

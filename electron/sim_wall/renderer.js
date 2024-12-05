@@ -4,6 +4,8 @@ const { kill } = require('process');
 const { ipcRenderer } = require('electron');
 const { exec } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+
 
 // uncomment this block for final builds. make sure to comment out other paths
 let macPath = path.join(process.resourcesPath, 'execs', 'MacOS', 'simwall_cmd');
@@ -136,7 +138,10 @@ function callExec() {
                 if (value) command += '-seeds ';
                 break;
             case 'langtonsAnt':
-                if (value) command += '-ant ';
+                if (value) {
+                    const filePath = path.join(process.resourcesPath, 'langtonsFile.txt');
+                    command += `-ant -ants ${filePath} `;
+                }
                 break;
             case 'circles':
                 if (value) command += '-c ';
@@ -219,6 +224,7 @@ function updateRGBAColor(type) {
     const rgbaColor = `rgba(${parseInt(red, 16)}, ${parseInt(green, 16)}, ${parseInt(blue, 16)}, ${parseInt(alpha, 16) / 255})`;
     document.getElementById(type + 'Button').style.backgroundColor = rgbaColor;
     const rgbaColorHex = `${red}${green}${blue}${alpha}`;
+    document.getElementById(type + 'Value').innerHTML = rgbaColorHex;
     setter(type, rgbaColorHex);
 }
 
@@ -236,5 +242,32 @@ function closeWindow() {
     ipcRenderer.send('close-window');
 }
 
+function displayExample(num) {
+    const antFileContent = document.getElementById('antFileContent');
+    const filePath = path.join(process.resourcesPath, 'ExampleAnts', `ex_ants${num}.txt`);
+    fetch(filePath)
+        .then(response => response.text())
+        .then(data => {
+            antFileContent.value = data;
+        })
+        .catch(error => {
+            console.error('Error fetching the example file:', error);
+        });
+}
+
+function setLangtonsFile() {
+    const filePath = path.join(process.resourcesPath, 'langtonsFile.txt');
+    const antFileContent = document.getElementById('antFileContent').value;
+
+    fs.writeFile(filePath, antFileContent, (err) => {
+        if (err) {
+            console.error('Error writing to file:', err);
+        } else {
+            console.log('File has been saved.');
+        }
+    });
+}
+
 // things to do (on startup or statically)
-changeContent('menu')
+changeContent('menu');
+
