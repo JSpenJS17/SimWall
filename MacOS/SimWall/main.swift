@@ -100,19 +100,11 @@ for i in 1..<argument_count { // Loops through each arugment (starting w/ 1 sinc
         simulation = "seeds"
     case "-ant":
         simulation = "ant"
-    case "-ant_rules":
-        if i != argument_count - 1 {
-            ant_rules = CommandLine.arguments[i + 1]
-        }
-    case "-ant_color":
-        var j = i + 1 // Start with the next argument
-        while j < argument_count && !CommandLine.arguments[j].hasPrefix("-") {
-            ant_colors.append(Color(hex_string_to_color(from: CommandLine.arguments[j])))
-            j += 1
-        }
-    case "-ants":
         if i != argument_count - 1 {
             ants_file = CommandLine.arguments[i + 1]
+            if !ants_file.hasSuffix(".txt") {
+                ants_file = ""
+            }
         }
     case "-c":
         shape = "circle"
