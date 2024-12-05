@@ -16,9 +16,9 @@
     "build": "cross-env SC_IDENTITY_AUTO_DISCOVERY=false electron-builder build"
   },
   "build": {
-   "files": [
+    "files": [
       "**/*"
-  ],
+    ],
     "mac": {
       "icon": "./assets/icon.icns",
       "category": "public.app-category.utilities"
