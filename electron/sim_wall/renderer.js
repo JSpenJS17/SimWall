@@ -258,14 +258,17 @@ function displayExample(num) {
 function setLangtonsFile() {
     const filePath = path.join(process.resourcesPath, 'langtonsFile.txt');
     const antFileContent = document.getElementById('antFileContent').value;
+    console.log(antFileContent);
 
-    fs.writeFile(filePath, antFileContent, (err) => {
-        if (err) {
-            console.error('Error writing to file:', err);
-        } else {
-            console.log('File has been saved.');
-        }
-    });
+    if (antFileContent.length != 0) {
+        fs.writeFile(filePath, antFileContent, (err) => {
+            if (err) {
+                console.error('Error writing to file:', err);
+            } else {
+                console.log('File has been saved.');
+            }
+        });
+    }
 }
 
 // things to do (on startup or statically)
