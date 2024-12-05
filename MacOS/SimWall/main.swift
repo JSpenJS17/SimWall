@@ -60,7 +60,7 @@ var disable_keybinds = false
 var disable_restocking = false
 var start_with_clear_board = false
 var ant_colors: [Color] = [.yellow]
-var abort = false
+var abort_start = false
 
 
 var speed = 0.05 // Speed of the game (1/speed = FPS)
@@ -69,30 +69,48 @@ var path = "" // Path of file for loading in pattern
 let argument_count = CommandLine.arguments.count // Gets the arugments
 for i in 1..<argument_count { // Loops through each arugment (starting w/ 1 sincie we don't care about the ./simwall itself)
     switch CommandLine.arguments[i] { // Using a switch statemetn for flags, we don't really care if a nonflag is passed rn, we just pretend like its not there
-    case "-d", "-D" : // -t is used to set the tile shape
+    case "-d", "-D", "--daemonize": // -t is used to set the tile shape
         daemonize = true
     case "-alive":
         if i != argument_count - 1 {
             alive_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1]))
             alive_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1])
+        } else {
+            print("Not enough arguments for -alive")
+            abort_start = true
+            help_print()
         }
     case "-dead":
         if i != argument_count - 1 {
             dead_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1]))
             dead_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1])
+        } else {
+            print("Not enough arguments for -dead")
+            abort_start = true
+            help_print()
         }
     case "-dying":
         if i != argument_count - 1 {
             dying_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1]))
             dying_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1])
+        } else {
+            print("Not enough arguments for -dying")
+            abort_start = true
+            help_print()
         }
     case "-fps":
         if i != argument_count - 1 {
             if let value = Double(CommandLine.arguments[i + 1]) {
                 fps = value
             } else {
-                fps = 10.0
+                print("-s requires a number as input")
+                abort_start = true
+                help_print()
             }
+        } else {
+            print("Not enough arguments for -fps")
+            abort_start = true
+            help_print()
         }
     case "-bb":
         simulation = "brians_brain"
@@ -101,18 +119,25 @@ for i in 1..<argument_count { // Loops through each arugment (starting w/ 1 sinc
     case "-ant":
         simulation = "ant"
         if i != argument_count - 1 {
-            ants_file = CommandLine.arguments[i + 1]
-            if !ants_file.hasSuffix(".txt") {
-                ants_file = ""
+            if !CommandLine.arguments[i + 1].starts(with: "-") {
+                ants_file = CommandLine.arguments[i + 1]
             }
         }
     case "-c":
         shape = "circle"
     case "-s":
-        if let value = Int(CommandLine.arguments[i + 1]) {
-            cell_size = value
+        if i != argument_count - 1 {
+            if let value = Int(CommandLine.arguments[i + 1]) {
+                cell_size = value
+            } else {
+                print("-s requires a whole number as input")
+                abort_start = true
+                help_print()
+            }
         } else {
-            cell_size = 25
+            print("Not enough arguments for -s")
+            abort_start = true
+            help_print()
         }
     case "-nk":
         disable_keybinds = true
@@ -127,13 +152,21 @@ for i in 1..<argument_count { // Loops through each arugment (starting w/ 1 sinc
         // 2) It is used to check for random vs set starting pattern (via path == "")
         if i != argument_count - 1 {
             path = CommandLine.arguments[i + 1]
+        } else {
+            print("Not enough arguments for -f")
+            abort_start = true
+            help_print()
         }
         print("path: \(path)") // print path for debug
-    case "-h":
+    case "-h", "--help":
         help_print()
-        abort = true
+        abort_start = true
     default: // If it's not a flag, just do nothing
-        print("") // Swift requires a statement here
+        if CommandLine.arguments[i].starts(with: "-") {
+            print("Invalid flag: " + CommandLine.arguments[i])
+            abort_start = true
+            help_print()
+        }
     }
 }
 
@@ -149,7 +182,7 @@ if (simulation == "ant" && ants_file == "") {
 // Starts up the app by setting up our NSApplication
 // Then sets a delegate
 // And runs the app
-if !abort {
+if !abort_start {
     let app = NSApplication.shared
     let delegate = AppDelegate()
     app.delegate = delegate

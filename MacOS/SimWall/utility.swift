@@ -84,7 +84,9 @@ func read_in_file(path: String) -> [[Int]] {
             grid.append(row) // Add the row to our grid
         }
     } catch { // If we error, print for debug
-        print("Error reading file: \(error)")
+        print("Could not open file: " + path)
+        abort_start = true
+        exit(1)
     }
     return grid // Return our newly made grid
 }
@@ -123,6 +125,11 @@ func file_to_ant(path: String) -> [Ant] {
                     for arg in args {
                         ant_colors.append(hex_string_to_color(from: String(arg)))
                     }
+                    if ant_colors.count <= rule.count {
+                        print("Color list too short")
+                        abort_start = true
+                        exit(1)
+                    }
                 }
             } else {
                 let args = line.split(separator: " ")
@@ -133,49 +140,70 @@ func file_to_ant(path: String) -> [Ant] {
         }
         return ants
     } catch {
+        print("Could not open file: " + path)
+        abort_start = true
+        exit(1)
     }
     return []
 }
 
 func hex_string_to_color(from hex_string: String) -> Color {
     // Get the string
-    let red_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 0)..<hex_string.index(hex_string.startIndex, offsetBy: 2)])
-    let green_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 2)..<hex_string.index(hex_string.startIndex, offsetBy: 4)])
-    let blue_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 4)..<hex_string.index(hex_string.startIndex, offsetBy: 6)])
-    let alpha_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 6)..<hex_string.index(hex_string.startIndex, offsetBy: 8)])
-    
-    var red_val: Int
-    var green_val: Int
-    var blue_val: Int
-    var alpha_val: Int
-    
-    if let value = UInt8(red_hex, radix: 16) {
-        red_val = Int(value)
-        if let value = UInt8(green_hex, radix: 16) {
-            green_val = Int(value)
-            if let value = UInt8(blue_hex, radix: 16) {
-                blue_val = Int(value)
-                if let value = UInt8(alpha_hex, radix: 16) {
-                    alpha_val = Int(value)
-                    let nsColor = NSColor(calibratedRed: Double(red_val)/255.0, green: Double(green_val)/255.0, blue: Double(blue_val)/255.0, alpha: Double(alpha_val)/255.0)
-                    let alive_color = Color(nsColor)
-                    return alive_color
+    if hex_string.count == 8 {
+        let red_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 0)..<hex_string.index(hex_string.startIndex, offsetBy: 2)])
+        let green_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 2)..<hex_string.index(hex_string.startIndex, offsetBy: 4)])
+        let blue_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 4)..<hex_string.index(hex_string.startIndex, offsetBy: 6)])
+        let alpha_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 6)..<hex_string.index(hex_string.startIndex, offsetBy: 8)])
+        
+        var red_val: Int
+        var green_val: Int
+        var blue_val: Int
+        var alpha_val: Int
+        
+        if let value = UInt8(red_hex, radix: 16) {
+            red_val = Int(value)
+            if let value = UInt8(green_hex, radix: 16) {
+                green_val = Int(value)
+                if let value = UInt8(blue_hex, radix: 16) {
+                    blue_val = Int(value)
+                    if let value = UInt8(alpha_hex, radix: 16) {
+                        alpha_val = Int(value)
+                        let nsColor = NSColor(calibratedRed: Double(red_val)/255.0, green: Double(green_val)/255.0, blue: Double(blue_val)/255.0, alpha: Double(alpha_val)/255.0)
+                        let alive_color = Color(nsColor)
+                        return alive_color
+                    } else {
+                        print("Invalid color: " + hex_string)
+                    }
+                } else {
+                    print("Invalid color: " + hex_string)
                 }
+                
+            } else {
+                print("Invalid color: " + hex_string)
             }
-            
+        } else {
+            print("Invalid color: " + hex_string)
         }
+    } else {
+        abort_start = true
+        print("Invalid color: " + hex_string)
     }
     return .white
     }
 
 func hex_string_to_alpha(from hex_string: String) -> Int {
-    let alpha_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 6)..<hex_string.index(hex_string.startIndex, offsetBy: 8)])
-    var alpha_val: Int
-    if let value = UInt8(alpha_hex, radix: 16) {
-        alpha_val = Int(value)
-        return alpha_val
+    if hex_string.count == 8 {
+        let alpha_hex = String(hex_string[hex_string.index(hex_string.startIndex, offsetBy: 6)..<hex_string.index(hex_string.startIndex, offsetBy: 8)])
+        var alpha_val: Int
+        if let value = UInt8(alpha_hex, radix: 16) {
+            alpha_val = Int(value)
+            return alpha_val
+        }
+        return 255
+    } else{
+        abort_start = true
+        return 0
     }
-    return 255
     
 }
 
