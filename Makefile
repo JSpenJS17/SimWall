@@ -26,8 +26,15 @@ all: build
 build:
 	@echo ---Building for $(detected_OS)---
 
+# Build the binary
+	@$(MAKE) -C $(detected_OS) OUTNAME=$(OUTNAME)
+
 # Ensure the output directory exists
+	@echo $(MKDIR_CMD)
 	@$(MKDIR_CMD)
 
 # Copy the binary to the destination directory
+	@echo $(COPY_CMD)
 	@$(COPY_CMD)
+
+	@echo Build complete for $(detected_OS)
