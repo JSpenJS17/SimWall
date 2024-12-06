@@ -121,11 +121,17 @@ func file_to_ant(path: String) -> [Ant] {
                     }
                     dead_color = hex_string_to_color(from: "00000000")
                 } else {
+                    var arg_index = 0
                     let args = line.split(separator: " ")
                     for arg in args {
-                        ant_colors.append(hex_string_to_color(from: String(arg)))
+                        if arg_index == 0 {
+                            dead_color = hex_string_to_color(from: String(arg))
+                        } else {
+                            ant_colors.append(hex_string_to_color(from: String(arg)))
+                        }
+                        arg_index += 1
                     }
-                    if ant_colors.count <= rule.count {
+                    if ant_colors.count + 1 <= rule.count {
                         print("Color list too short")
                         abort_start = true
                         exit(1)
