@@ -11,19 +11,20 @@ Heavily abstracted away into not-so-pretty libraries
 #ifndef SIMWALL_C
 #define SIMWALL_C
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <windows.h>
-#include <string.h>
-#include <time.h>
+#include <stdio.h> //standard I/O library
+#include <stdlib.h> //standard memory allocation library
+#include <stdbool.h> //Boolean type support
+#include <windows.h> //Window specific library for system-level operations
+#include <string.h> //string manipulation
+#include <time.h> //time manipulation
 
-#include "windows_lib.h"
-#include "game_of_life/game_of_life.h"
-#include "brians_brain/brians_brain.h"
-#include "seeds/seeds.h"
-#include "langtons_ant/langtons_ant.h"
+#include "windows_lib.h" //custom library for Windows
+#include "game_of_life/game_of_life.h" //Game of Life (GoL) library
+#include "brians_brain/brians_brain.h" //Brian's Brain library
+#include "seeds/seeds.h" //Seeds library
+#include "langtons_ant/langtons_ant.h" //Langton's Ant library
 
+//flags
 #define DAEMONIZE   1
 #define CIRCLE      (1 << 1)
 #define KEYBINDS    (1 << 2)
@@ -36,46 +37,46 @@ Heavily abstracted away into not-so-pretty libraries
 
 /* General purpose cmd-line args*/
 typedef struct Args {
-    RGBA alive_color, dead_color, dying_color, ant_color;
-    unsigned char flags;
-    Ant* ants;
-    int num_ants;    
-    float framerate;
+    RGBA alive_color, dead_color, dying_color, ant_color; //color states for simulations
+    unsigned char flags; //flags for simulation options
+    Ant* ants; //pointer to array of Langton's Ants
+    int num_ants; //variable integer for number of ants in Langton's Ant
+    float framerate; //variable float for frame rate for simulation
 } Args;
 
 /* Struct to store board information */
 typedef struct Board {
-    int width, height;
-    int* pattern;
+    int width, height; //variable integers for dimensions of simulation
+    int* pattern; //pointer to array for the board pattern
 } Board;
 
-// Globals
-int CELL_SIZE = 25;
+// Global variables
+int CELL_SIZE = 25; //default cell size
 void (*fill_func)(int, int, size_t); // x, y, size
-Args* args;
-int cur_color;
-int cur_color;
-RGBA* color_list;
+Args* args; //pointer to command line argument structure above
+int cur_color; //variable to track current color
+int cur_color; 
+RGBA* color_list; //array of colors for Langton's Ant
 
 // Langton's Ant specific globals
-size_t num_colors;
-char ruleset[128]; // null-terminated string of rules, max 128 chars
+size_t num_colors; //number of colors in color list
+char ruleset[128]; //null-terminated string of rules, max 128 chars
 
-
+//Function to display usage instructions for SimWall
 void usage() {
-    fprintf(stderr, "Usage: simwall [options]\n");
-    fprintf(stderr, "Options:\n");
-    fprintf(stderr, "  -h, --help: Show this help message\n");
-    fprintf(stderr, "  -D, -d, --daemonize: Daemonize the process\n");
-    fprintf(stderr, "  -dead 000000FF: Set the dead cell color (RGBA)\n");
-    fprintf(stderr, "  -alive FFFFFFFF: Set the alive cell color (RGBA)\n");
-    fprintf(stderr, "  -dying 808080FF: Set the dying cell color (RGBA)\n");
-    fprintf(stderr, "  -fps 10.0: Set the framerate\n");
-    fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n");
-    fprintf(stderr, "  -seeds: Run Seeds instead of Game of Life\n");
-    fprintf(stderr, "  -ant <ant_params.txt>: Run Langton's Ant instead of Game of Life.\n");
+    fprintf(stderr, "Usage: simwall [options]\n"); //print usage header
+    fprintf(stderr, "Options:\n"); //header for options
+    fprintf(stderr, "  -h, --help: Show this help message\n"); //option for help
+    fprintf(stderr, "  -D, -d, --daemonize: Daemonize the process\n"); //option to daemonize
+    fprintf(stderr, "  -dead 000000FF: Set the dead cell color (RGBA)\n"); //set dead cell color
+    fprintf(stderr, "  -alive FFFFFFFF: Set the alive cell color (RGBA)\n"); //set alive cell color
+    fprintf(stderr, "  -dying 808080FF: Set the dying cell color (RGBA)\n"); //set dying cell color
+    fprintf(stderr, "  -fps 10.0: Set the framerate\n"); //set framerate
+    fprintf(stderr, "  -bb: Run Brian's Brain (BB) instead of Game of Life\n"); //switch to Brian's Brain
+    fprintf(stderr, "  -seeds: Run Seeds instead of Game of Life\n"); //switch to Seeds
+    fprintf(stderr, "  -ant <ant_params.txt>: Run Langton's Ant instead of Game of Life.\n"); //switch to Langton's Ant
     fprintf(stderr, "                         Ant parameters are optional.\n");
-    fprintf(stderr, "    -ant_params.txt: Give ant parameters in a file.\n");
+    fprintf(stderr, "    -ant_params.txt: Give ant parameters in a file.\n"); //ant parameter file details
     fprintf(stderr, "       Format:\n");
     fprintf(stderr, "         RULESET\n");
     fprintf(stderr, "         CELL COLOR LIST (RGBA values, space delimited)\n");
@@ -87,34 +88,36 @@ void usage() {
     fprintf(stderr, "       Cell color list length must be >= to ruleset length and\n");
     fprintf(stderr, "         can be set to default values by providing the keyword \"default\"\n");
     fprintf(stderr, "         or \"default_alpha\" for a transparent background\n");
-    fprintf(stderr, "  -c: Draw circles instead of a squares\n");
-    fprintf(stderr, "  -s 25: Set the cell size in pixels\n");
-    fprintf(stderr, "  -nk: Disable keybinds\n");
-    fprintf(stderr, "  -nr: No restocking if board is too empty\n");
-    fprintf(stderr, "  -clear: Start with a clear board. Includes -nr\n");
-    fprintf(stderr, "Example: simwall -dead FF00FFFF -alive FFFF00FF -fps 7.5\n");
+    fprintf(stderr, "  -c: Draw circles instead of a squares\n"); //option to switch from default squares to circles
+    fprintf(stderr, "  -s 25: Set the cell size in pixels\n"); //option to set cell size
+    fprintf(stderr, "  -nk: Disable keybinds\n"); //option to disable keybinds
+    fprintf(stderr, "  -nr: No restocking if board is too empty\n"); //option to disable restocking
+    fprintf(stderr, "  -clear: Start with a clear board. Includes -nr\n"); //option to clear board
+    fprintf(stderr, "Example: simwall -dead FF00FFFF -alive FFFF00FF -fps 7.5\n"); //example usage
     exit(1);
 }
 
+/*
+    Count number of lines in file
+*/
 int count_lines(const char* filename) {
-    FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        perror("Failed to open file");
-        return -1; // Indicate error
+    FILE *file = fopen(filename, "r"); //open file in read mode
+    if (file == NULL) { //if file cannot be opened
+        perror("Failed to open file"); //print error message
+        return -1; //indicate error
     }
 
-    int line_count = 0;
-    char ch;
+    int line_count = 0; //variable for line count
+    char ch; //variable for character inf ile
 
-    // Read file character by character
-    while ((ch = fgetc(file)) != EOF) {
+    while ((ch = fgetc(file)) != EOF) { //read file character by character
         if (ch == '\n') {
-            line_count++;
+            line_count++; //increment line counter if newline counter seen
         }
     }
 
-    fclose(file);
-    return line_count;
+    fclose(file); //close file
+    return line_count; //return total number of lines
 }
 
 void parse_ants_file(FILE* ants_file, const char* filename) {
