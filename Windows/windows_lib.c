@@ -26,15 +26,15 @@ bool add_mode = false;
 bool clear = false;
 
 // Global variables for the graphics
-static uint32_t cur_color;
-static DWORD* pixels;
-static SIZE size;
-static POINT ptSrc;
-static BLENDFUNCTION blend;
-static HDC hMemDC;
-static int pix_width;
-static int pix_height;
-static HBITMAP hBitmap;
+static uint32_t cur_color; //current color
+static DWORD* pixels; //pointer to pixel buffer
+static SIZE size; //size of window
+static POINT ptSrc; //source point
+static BLENDFUNCTION blend; //blend function for transparency
+static HDC hMemDC; //for off-screen bitmap
+static int pix_width; //width of screen in pixels
+static int pix_height; //height of screen in pixels
+static HBITMAP hBitmap; //for layered window updates
 
 /* Functions */
 void fill_cell(int x, int y, size_t size) {
