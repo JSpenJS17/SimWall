@@ -55,11 +55,13 @@ Description: This program reads a GoL board state and generates some number of f
 //     return 0;
 // }
 
-
+/*
+    Function to read a pattern from a file and center on a board
+*/
 int* read_start_pattern(char* filename, int max_width, int max_height) {
-    FILE* file = fopen(filename, "r");
+    FILE* file = fopen(filename, "r"); //open file in read mode
     if (file == NULL) {
-        perror("Failed to open file");
+        perror("Failed to open file"); //error message
         exit(EXIT_FAILURE);
     }
 
@@ -71,11 +73,11 @@ int* read_start_pattern(char* filename, int max_width, int max_height) {
     while (fgets(line, sizeof(line), file)) {
         pattern_height++;
         int line_length = strlen(line);
-        if (line[line_length - 1] == '\n') {
-            line_length--;
+        if (line[line_length - 1] == '\n') { //if new line character
+            line_length--; //remove
         }
         if (line_length > pattern_width) {
-            pattern_width = line_length;
+            pattern_width = line_length; //update maximum line length
         }
     }
 
@@ -116,7 +118,9 @@ int* read_start_pattern(char* filename, int max_width, int max_height) {
     return board;
 }
 
-
+/*
+    Function to generate the next board state pased on the current pattern
+*/
 int* gol_gen_next(int* pattern, int width, int height) {
     int* next_pattern = (int*)malloc(width * height * sizeof(int));
     if (next_pattern == NULL) {
@@ -140,7 +144,9 @@ int* gol_gen_next(int* pattern, int width, int height) {
     return next_pattern;
 }
 
-
+/*
+    Function to count the number of live neighbors for a given cell
+*/
 int gol_count_live_neighbors(int* pattern, int width, int height, int cell_index){
     int live_neighbors_count = 0;
     int cell_x = cell_index % width;
@@ -162,7 +168,9 @@ int gol_count_live_neighbors(int* pattern, int width, int height, int cell_index
     return live_neighbors_count;
 }
 
-
+/*
+    Functin to print the current pattern state to the console
+*/
 void print_pattern(int* pattern, int width, int height) {
     system("clear");
     for (int y = 0; y < height; y++) {
@@ -174,6 +182,9 @@ void print_pattern(int* pattern, int width, int height) {
     printf("\n");
 }
 
+/*
+    Function to generate random board patterns based on percentage of alive cells
+*/
 int* gol_gen_random(int width, int height, int percent_alive) {
     /* Generates a random board on the heap */
     int* pattern = (int*)malloc(width * height * sizeof(int));
@@ -195,6 +206,9 @@ int* gol_gen_random(int width, int height, int percent_alive) {
     return pattern;
 }
 
+/*
+    Function add some random cells as alive to a pattern
+*/
 void gol_add_life(int* pattern, int width, int height, int percent_alive) {
     // Airdrop some extra cells!!
     srand(time(NULL));
