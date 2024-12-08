@@ -67,115 +67,140 @@ var speed = 0.05 // Speed of the game (1/speed = FPS)
 var path = "" // Path of file for loading in pattern
 
 let argument_count = CommandLine.arguments.count // Gets the arugments
+
 for i in 1..<argument_count { // Loops through each arugment (starting w/ 1 sincie we don't care about the ./simwall itself)
     switch CommandLine.arguments[i] { // Using a switch statemetn for flags, we don't really care if a nonflag is passed rn, we just pretend like its not there
-    case "-d", "-D", "--daemonize": // -t is used to set the tile shape
-        daemonize = true
-    case "-alive":
-        if i != argument_count - 1 {
-            alive_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1]))
-            alive_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1])
-        } else {
-            print("Not enough arguments for -alive")
-            abort_start = true
-            help_print()
+    
+    case "-d", "-D", "--daemonize": // if its the daemonize flag
+        daemonize = true // enable daemonization, even though this doesn't do anything on MacOS because its not needed but its here for consistancy
+    
+    case "-alive": // set the alive cell color
+        if i != argument_count - 1 { // Checks that there is another argument after for safety
+            alive_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1])) // Takes the next element and converts it to a color
+            alive_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1]) // Gets the alpha of that color as well
+            
+        } else { // If there's no argument after, then its improperly formatted
+            print("Not enough arguments for -alive") // Prints error
+            abort_start = true // Aborts start
+            help_print() // prints help statement
         }
-    case "-dead":
-        if i != argument_count - 1 {
-            dead_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1]))
-            dead_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1])
-        } else {
-            print("Not enough arguments for -dead")
-            abort_start = true
-            help_print()
+        
+    case "-dead": // set the dead cell color
+        if i != argument_count - 1 { // Checks that there is another argument after for safety
+            dead_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1])) // Takes the next element and converts it to a color/
+            dead_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1]) // Gets the alpha of that color as well
+            
+        } else { // If there's no argument after, then its improperly formatted
+            print("Not enough arguments for -dead") // Prints error
+            abort_start = true // Aborts start
+            help_print() // prints help statement
         }
-    case "-dying":
-        if i != argument_count - 1 {
-            dying_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1]))
-            dying_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1])
+        
+    case "-dying": // update dying cell color
+        if i != argument_count - 1 { // Checks that there is another argument after for safety
+            dying_color = Color(hex_string_to_color(from: CommandLine.arguments[i + 1])) // Takes the next element and converts it to a color
+            dying_alpha = hex_string_to_alpha(from: CommandLine.arguments[i + 1]) // Gets the alpha of that color as well
         } else {
-            print("Not enough arguments for -dying")
-            abort_start = true
-            help_print()
+            print("Not enough arguments for -dying") // Prints error
+            abort_start = true // Aborts start
+            help_print() // prints help statement
         }
-    case "-fps":
-        if i != argument_count - 1 {
-            if let value = Double(CommandLine.arguments[i + 1]) {
-                fps = value
+        
+    case "-fps": // update fps
+        if i != argument_count - 1 { // Checks that there is another argument after for safety
+            
+            if let value = Double(CommandLine.arguments[i + 1]) { // Converts string of next value into double
+                fps = value // updates FPS value
             } else {
-                print("-s requires a number as input")
-                abort_start = true
-                help_print()
+                print("-s requires a number as input") // Prints error
+                abort_start = true // Abort the start
+                help_print() // print help menu
             }
         } else {
-            print("Not enough arguments for -fps")
-            abort_start = true
-            help_print()
+            print("Not enough arguments for -fps") // Print error
+            abort_start = true // aborts the start
+            help_print() // print help menu
         }
-    case "-bb":
-        simulation = "brians_brain"
-    case "-seeds":
-        simulation = "seeds"
-    case "-ant":
-        simulation = "ant"
-        if i != argument_count - 1 {
-            if !CommandLine.arguments[i + 1].starts(with: "-") {
-                ants_file = CommandLine.arguments[i + 1]
+        
+    case "-bb": // sets simulation to brian's brain
+        simulation = "brians_brain" // Set var to brians brain
+        
+    case "-seeds": // sets simulation to seeds
+        simulation = "seeds" // Set var to seeds
+        
+    case "-ant": // sets simulation to ant and takes in details
+        simulation = "ant" // Set var to langton's ant
+        if i != argument_count - 1 { // Checks that there is another argument after for safety
+            if !CommandLine.arguments[i + 1].starts(with: "-") { // If the next thing is a file and not a flag, take in file path
+                ants_file = CommandLine.arguments[i + 1] // Updates ant_file var
             }
         }
-    case "-c":
-        shape = "circle"
-    case "-s":
-        if i != argument_count - 1 {
-            if let value = Int(CommandLine.arguments[i + 1]) {
-                cell_size = value
-            } else {
-                print("-s requires a whole number as input")
-                abort_start = true
-                help_print()
+        
+    case "-c": // sets cell to circle instead of square
+        shape = "circle" // updates var to circle
+        
+    case "-s": // update size of cells
+        if i != argument_count - 1 { // Checks that there is another argument after for safety
+            if let value = Int(CommandLine.arguments[i + 1]) { // Convert string to int for size
+                cell_size = value // Update cell size variable
+            } else { //
+                print("-s requires a whole number as input") // error about that
+                abort_start = true // abort start
+                help_print() // print help for user
             }
-        } else {
-            print("Not enough arguments for -s")
-            abort_start = true
-            help_print()
+        } else { // If there's no next argument
+            print("Not enough arguments for -s") // print error
+            abort_start = true // abort start
+            help_print() // print help for user
         }
-    case "-nk":
-        disable_keybinds = true
-    case "-nr":
-        disable_restocking = true
-    case "-clear":
-        start_with_clear_board = true
+    case "-nk": // disable keybinds
+        disable_keybinds = true // updates bool for keybinds
+        
+    case "-nr": // disable restocking
+        disable_restocking = true // updates bool for restocking
+        
+    case "-clear": // enable starting with a clear board
+        start_with_clear_board = true // updates bool for starting with clear board
+        
     case "-f": // -f indicates the user wnats a set pattern from a file rather than a random start pattern
         // -f should be followed by a path
         // the path var is used in two ways
         // 1) It tells where the file is
         // 2) It is used to check for random vs set starting pattern (via path == "")
-        if i != argument_count - 1 {
+        if i != argument_count - 1 { // Checks that there is another argument after for safety
             path = CommandLine.arguments[i + 1]
         } else {
-            print("Not enough arguments for -f")
-            abort_start = true
-            help_print()
+            print("Not enough arguments for -f") // prints error
+            abort_start = true // aborts start
+            help_print() // prints help
         }
         print("path: \(path)") // print path for debug
-    case "-h", "--help":
-        help_print()
-        abort_start = true
+        
+    case "-h", "--help": // Not for simulation, brings up help menu
+        help_print() // prints menu
+        abort_start = true // aborts the start since its just a help page
+        
     default: // If it's not a flag, just do nothing
-        if CommandLine.arguments[i].starts(with: "-") {
-            print("Invalid flag: " + CommandLine.arguments[i])
-            abort_start = true
-            help_print()
+        if CommandLine.arguments[i].starts(with: "-") { // Checks if its a flag
+            print("Invalid flag: " + CommandLine.arguments[i]) // If it is, yell at user about wrong flag
+            abort_start = true // Abort start
+            help_print() // print help for user
         }
     }
 }
 
-if (simulation == "ant" && ants_file == "") {
-    let num_colors = ants[0].ruleset.count
+if (simulation == "ant" && ants_file == "") { // Checks if we're doing the ant simulation and haven't set an ant file
+    
+    let num_colors = ants[0].ruleset.count // Figures out rule size
+    
+    // Calculates colors for the rule
     for default_color in 1..<num_colors+1 {
-        let step_size: Double = Double(255) / Double((num_colors-1))
-        let step_color = (Color(red: (Double(default_color) * step_size)/Double(255), green: (Double(default_color) * step_size)/Double(255), blue: (Double(default_color) * step_size)/Double(255)))
-        ant_colors.append(step_color)
+        // Loops for each color
+        
+        let step_size: Double = Double(255) / Double((num_colors-1)) // Calculates step
+        let step_color = (Color(red: (Double(default_color) * step_size)/Double(255), green: (Double(default_color) * step_size)/Double(255), blue: (Double(default_color) * step_size)/Double(255))) // Calculates color from index and step
+        
+        ant_colors.append(step_color) // Append color
     }
 }
 

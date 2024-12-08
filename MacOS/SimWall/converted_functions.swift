@@ -10,7 +10,7 @@ import Foundation
 // GENERATION FUNCTIONS
 
 /*
- These first three functions are the functions used to generate the next phase of life for each simulation
+ These first four functions are the functions used to generate the next phase of life for each simulation
  They are not written here and instead do a bunch of swift weirdness to convert things to the correct types
  They are ALL the same, except for the function they call, so I've commented the seeds one only
  These are using the functions from the .c files in this folder and their associated headers
@@ -21,70 +21,77 @@ import Foundation
 
 import SwiftUI
 
-struct Ant {
-    var x: Int32
-    var y: Int32
-    var direction: Int32
-    var ruleset: String
-    var color : Color
+struct Ant { // Ant object for Langton's Ant implementation
+    var x: Int32 // x pos of ant
+    var y: Int32 // y pos of ant
+    var direction: Int32 // direction of ant
+    var ruleset: String // ruleset ant is following
+    var color : Color // color of ant
 }
 
 func antGenNext(pattern: [Int32], width: Int, height: Int, ants: inout [Ant]) -> [Int32]? {
+    // Function to generate next step of ant simulation given an inputted current state and list of ants
+    
     guard pattern.count == width * height else {
-        print("Invalid grid dimensions")
-        return nil
+        // Checks to make sure the input is good
+        print("Invalid grid dimensions") // Prints error meessage
+        return nil // Returns nil
     }
     
-    // Make a mutable copy of the grid
+    // Make a copy of the grid
     var newGrid = pattern
 
     // Iterate over each ant
     for i in 0..<ants.count {
+        // Gets the ant for the iteration
         let ant = ants[i]
+        
+        // Gets the current index of the ant in the grid
         let currentIndex = Int(ant.y) * width + Int(ant.x)
         
         // Ensure the ant is within bounds
         guard currentIndex >= 0 && currentIndex < newGrid.count else {
-            print("Ant is out of bounds")
-            return nil
+            print("Ant is out of bounds") // prints error
+            return nil // returns nil to stop early
         }
 
         // Apply the ruleset to determine the ant's new state
-        let currentCellState = newGrid[currentIndex]
-        let ruleIndex = Int(currentCellState) % ant.ruleset.count
-        let currentRule = ant.ruleset[ant.ruleset.index(ant.ruleset.startIndex, offsetBy: ruleIndex)]
+        let currentCellState = newGrid[currentIndex] // gets current cell's state from gridd
+        let ruleIndex = Int(currentCellState) % ant.ruleset.count // figures out the rule index to be applied
+        let currentRule = ant.ruleset[ant.ruleset.index(ant.ruleset.startIndex, offsetBy: ruleIndex)] // gets rule from ant
         
         // Update the grid state
         newGrid[currentIndex] = (currentCellState + 1) % Int32(ant.ruleset.count)
 
         // Update the ant's direction based on the rule
-        switch currentRule {
-        case "L":
+        switch currentRule { // Switch statement based on what rule value it is
+        case "L": // to turn left
             ants[i].direction = (ants[i].direction + 3) % 4 // Turn left
-        case "R":
+        case "R": // to turn right
             ants[i].direction = (ants[i].direction + 1) % 4 // Turn right
-        case "U":
+        case "U": // to turn around
             ants[i].direction = (ants[i].direction + 2) % 4 // Turn around
-        default:
+        default: // this should only ever be for "C" which is just continue
             break
         }
 
-        // Move the ant
-        switch ants[i].direction {
+        // Updates the ant
+        
+        switch ants[i].direction { // Uses switch to update based on direction
         case 0: ants[i].y -= 1 // Move up
         case 1: ants[i].x += 1 // Move right
         case 2: ants[i].y += 1 // Move down
         case 3: ants[i].x -= 1 // Move left
-        default:
-            print("Invalid direction")
+        default: // if it's none of these, that's an issue
+            print("Invalid direction") // print error (this should never happen)
         }
 
         // Wrap the ant's position around the grid edges
-        ants[i].x = (ants[i].x + Int32(width)) % Int32(width)
-        ants[i].y = (ants[i].y + Int32(height)) % Int32(height)
+        ants[i].x = (ants[i].x + Int32(width)) % Int32(width) // If we go over the edge wrap around
+        ants[i].y = (ants[i].y + Int32(height)) % Int32(height) // Same thing but for up down
     }
 
-    return newGrid
+    return newGrid // return the updated grid so that it can be displayed
 }
 // SEEDS
 
@@ -101,7 +108,7 @@ func seedsGenNext(pattern: [Int32], width: Int, height: Int) -> [Int32]? {
             nextPatternArray = Array(bufferPointer) // Gets the output and puts it into an Array
             free(nextPatternPointer) // Free the allocated memory
         } else {
-            print("Failed to generate next pattern")
+            print("Failed to generate next pattern") // prints error if it can't genereate
         }
     }
     
@@ -111,43 +118,43 @@ func seedsGenNext(pattern: [Int32], width: Int, height: Int) -> [Int32]? {
 // BRIANS BRAIN (same as seeds, just bb_gen_next)
 
 func bbGenNext(pattern: [Int32], width: Int, height: Int) -> [Int32]? {
-    let patternSize = width * height
-    var nextPatternArray: [Int32] = []
+    let patternSize = width * height // Calculates the pattern's size
+    var nextPatternArray: [Int32] = [] // Gets a variable ready to hold next pattern
     
-    pattern.withUnsafeBufferPointer { patternBuffer in
-        let patternPointer = patternBuffer.baseAddress!
+    pattern.withUnsafeBufferPointer { patternBuffer in // Sets up pointers to be used with the C functions
+        let patternPointer = patternBuffer.baseAddress! // Gets the address of the patternBuffer
         // Call the C function
-        if let nextPatternPointer = bb_gen_next(patternPointer, Int32(width), Int32(height)) {
-            let bufferPointer = UnsafeBufferPointer(start: nextPatternPointer, count: patternSize)
-            nextPatternArray = Array(bufferPointer)
+        if let nextPatternPointer = bb_gen_next(patternPointer, Int32(width), Int32(height)) { // Actually does the function call, but does a lot of the safety things swift wants since its running C code
+            let bufferPointer = UnsafeBufferPointer(start: nextPatternPointer, count: patternSize) // Sets the buffer pointer
+            nextPatternArray = Array(bufferPointer) // Free the allocated memory
             free(nextPatternPointer) // Free the allocated memory
         } else {
-            print("Failed to generate next pattern")
+            print("Failed to generate next pattern") // prints error if it can't genereate
         }
     }
     
-    return nextPatternArray.isEmpty ? nil : nextPatternArray
+    return nextPatternArray.isEmpty ? nil : nextPatternArray // Returns the value if it had no errors
 }
 
 // GAME OF LIFE (same as seeds, just gol_gen_next)
 
 func golGenNext(pattern: [Int32], width: Int, height: Int) -> [Int32]? {
-    let patternSize = width * height
-    var nextPatternArray: [Int32] = []
+    let patternSize = width * height // Calculates the pattern's size
+    var nextPatternArray: [Int32] = [] // Gets a variable ready to hold next pattern
     
-    pattern.withUnsafeBufferPointer { patternBuffer in
-        let patternPointer = patternBuffer.baseAddress!
+    pattern.withUnsafeBufferPointer { patternBuffer in // Sets up pointers to be used with the C functions
+        let patternPointer = patternBuffer.baseAddress! // Gets the address of the patternBuffer
         // Call the C function
-        if let nextPatternPointer = gol_gen_next(patternPointer, Int32(width), Int32(height)) {
-            let bufferPointer = UnsafeBufferPointer(start: nextPatternPointer, count: patternSize)
-            nextPatternArray = Array(bufferPointer)
+        if let nextPatternPointer = gol_gen_next(patternPointer, Int32(width), Int32(height)) { // Actually does the function call, but does a lot of the safety things swift wants since its running C code
+            let bufferPointer = UnsafeBufferPointer(start: nextPatternPointer, count: patternSize) // Sets the buffer pointer
+            nextPatternArray = Array(bufferPointer) // Free the allocated memory
             free(nextPatternPointer) // Free the allocated memory
         } else {
-            print("Failed to generate next pattern")
+            print("Failed to generate next pattern") // prints error if it can't genereate
         }
     }
     
-    return nextPatternArray.isEmpty ? nil : nextPatternArray
+    return nextPatternArray.isEmpty ? nil : nextPatternArray // Returns the value if it had no errors
 }
 
 // GENERAL RANDOM
@@ -160,9 +167,9 @@ func golGenRandom(width: Int, height: Int, percentAlive: Int) -> [Int32]? {
     }
     
     // Same calculations as above functions to get grid
-    let patternSize = width * height
-    let bufferPointer = UnsafeBufferPointer(start: randomPatternPointer, count: patternSize)
-    let randomPatternArray = Array(bufferPointer)
+    let patternSize = width * height // gets size of pattern
+    let bufferPointer = UnsafeBufferPointer(start: randomPatternPointer, count: patternSize) // creates pointer to grid
+    let randomPatternArray = Array(bufferPointer) // Makes array
     
     free(randomPatternPointer) // Free the allocated memory
     

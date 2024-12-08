@@ -38,8 +38,8 @@ struct Background: View {
     var body: some View {
         // A ZStack to set up the background black layer VS the tiles on top
         ZStack {
-            if !(alive_alpha < 255 || dying_alpha < 255) {
-                dead_color
+            if !(alive_alpha < 255 || dying_alpha < 255) { // If we don't have transparency in the dead or dying cells
+                dead_color // make whole background color for optimization
             }
 
             // Use Canvas for efficient drawing
@@ -75,20 +75,20 @@ struct Background: View {
                 } //else { // If the user wants the classic mode of colored tiles on a background
                 for row in 0..<GRID_HEIGHT { // Same as above, looping through
                     for column in 0..<GRID_WIDTH { // Loops for the width still as well
-                        var ant_pos: [[Int32]] = []
-                        if simulation == "ant" {
-                            for ant in ants {
-                                ant_pos.append([ant.x, ant.y])
+                        var ant_pos: [[Int32]] = [] // an array of coord positions of all of the ants
+                        if simulation == "ant" { // If we're doing the ant simulation
+                            for ant in ants { // Go through each ant
+                                ant_pos.append([ant.x, ant.y]) // Add its position to the list
                             }
                         }
                         let cellValue = layout[row][column] // Gets the cell value
                         if (cellValue != 0 || ant_pos.contains([Int32(column), Int32(row)])){ // Now we care about whether the cell is alive, not whether it is dead
                             // We build our cell the exact same way as above/
-                            let rect = CGRect(
-                                x: CGFloat(column) * cellSize,
-                                y: CGFloat(row) * cellSize,
-                                width: cellSize,
-                                height: cellSize
+                            let rect = CGRect( // Makes tile
+                                x: CGFloat(column) * cellSize, // Gets x
+                                y: CGFloat(row) * cellSize, // Gets y
+                                width: cellSize, // sets width
+                                height: cellSize // sets height
                             )
 
                             // We make our path object
@@ -103,15 +103,15 @@ struct Background: View {
                             var cellColor: Color = .white
                             // We set the color
                             if simulation == "ant" {
-                                if ant_pos.contains([Int32(column), Int32(row)]) {
-                                    for ant in ants {
-                                        if row == ant.y && column == ant.x {
-                                            cellColor = ant.color
+                                if ant_pos.contains([Int32(column), Int32(row)]) { // Check if the cell is one that contains an ant
+                                    for ant in ants { // Go through each ant
+                                        if row == ant.y && column == ant.x { // Checks if that ant is here and if so,
+                                            cellColor = ant.color // sets the tile to that ant's color
                                         }
                                     }
                                     
                                 } else {
-                                    cellColor = ant_colors[cellValue]
+                                    cellColor = ant_colors[cellValue] // otherwise color it based on the ant rule color list
                                 }
 
                             } else {
@@ -128,23 +128,23 @@ struct Background: View {
         }
         .onAppear {
             // When the background appears we have a lot of work to do
-            if simulation == "ant" {
-                if ants_file != "" {
-                    ants = file_to_ant(path: ants_file)
-                } else {
-                    ants = [Ant(x: Int32(GRID_WIDTH/2), y: Int32(GRID_HEIGHT/2), direction: 0, ruleset: "RLCU", color: hex_string_to_color(from: "FF0000FF"))]
+            if simulation == "ant" { // When we start, if we're doing ants
+                if ants_file != "" { // And we have an ants file
+                    ants = file_to_ant(path: ants_file) // read it in and get list of ants from it using utility function
+                } else { // Otherwise, we're doing default
+                    ants = [Ant(x: Int32(GRID_WIDTH/2), y: Int32(GRID_HEIGHT/2), direction: 0, ruleset: "LR", color: hex_string_to_color(from: "FF0000FF"))] // Base ant
                 }
             }
 
             // If the user didn't set a starting pattern, we need to generate one randomly
-            if start_with_clear_board {
-                layout = makeEmptyBoard(width: GRID_WIDTH, height: GRID_HEIGHT)
-            } else {
-                if path == "" {
+            if start_with_clear_board { // If we're starting with empty board
+                layout = makeEmptyBoard(width: GRID_WIDTH, height: GRID_HEIGHT) // set board to clear board
+            } else { // Otherwise (most of the time)
+                if path == "" { // If we don't have a path to a starting pattern
                     if simulation == "seeds" { // The seeds simulation goes from small to big, so we have a special random for it
                         layout = makeSmallBoard(width: GRID_WIDTH, height: GRID_HEIGHT) // Generates a small baord
                     } else if simulation == "ant" {
-                        layout = makeEmptyBoard(width: GRID_WIDTH, height: GRID_HEIGHT)
+                        layout = makeEmptyBoard(width: GRID_WIDTH, height: GRID_HEIGHT) // Ants start on empty board and add on
                     } else { // Otherwise, we start big and get smaller, so we just use the C function from game_of_life to generate a random board
                         layout = cArrayToSwiftArray(pattern: golGenRandom(width: GRID_WIDTH, height: GRID_HEIGHT, percentAlive: STARTING_PERCENTAGE)!, width: GRID_WIDTH, height: GRID_HEIGHT) // Generates the board and then converts it to a Swift object
                     }
@@ -168,15 +168,15 @@ struct Background: View {
                     // And is disucsesed in each sections's comments
                     // Also, if the original board came from a file, we just reset to that starting state
                    
-                    if simulation == "brians_brain" {
-                        if let nextPattern = bbGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT) {
-                            DispatchQueue.main.async {
-                                layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT)
-                                if (life_remaining(layout: layout, width: GRID_WIDTH, height: GRID_HEIGHT) <= RESET_PERCENT/3) && iterations > 150 && !disable_restocking { // We need there to be a third of the reset percentage left (meaning even less than normal since BB can often generate more tiles from low amounts) and we must have seen 150 generations to ensure smaller starting patterns get a chance to get going
-                                    iterations = 0
-                                    if start_with_clear_board {
+                    if simulation == "brians_brain" { // If we're doing Brian's Brain simulation
+                        if let nextPattern = bbGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT) { // Generates next frame using function
+                            DispatchQueue.main.async { // Need to queue actions in a DispatchQueue to ensure proper ordering
+                                layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT) // Updates layout
+                                if (life_remaining(layout: layout, width: GRID_WIDTH, height: GRID_HEIGHT) <= RESET_PERCENT/3) && iterations > 150 && !disable_restocking { // We need there to be a third of the reset percentage left and past a certain iteration count (meaning even less than normal since BB can often generate more tiles from low amounts) and we must have seen 150 generations to ensure smaller starting patterns get a chance to get going
+                                    iterations = 0 // Resets iteration counter since we've reset
+                                    if start_with_clear_board { // If we started with a clear board, when we reset we should go back to clear
                                         layout = makeEmptyBoard(width: GRID_WIDTH, height: GRID_HEIGHT)
-                                    } else {
+                                    } else { // Otherwise,
                                         layout = path == ""
                                         ? cArrayToSwiftArray(pattern: golGenRandom(width: GRID_WIDTH, height: GRID_HEIGHT, percentAlive: STARTING_PERCENTAGE)!, width: GRID_WIDTH, height: GRID_HEIGHT)
                                         : file_to_board(path: path, width: GRID_WIDTH, height: GRID_HEIGHT) // or read from file if not random
@@ -184,15 +184,15 @@ struct Background: View {
                                 }
                             }
                         }
-                    } else if simulation == "game_of_life" {
-                        if let nextPattern = golGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT) {
-                            DispatchQueue.main.async {
-                                layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT)
+                    } else if simulation == "game_of_life" { // If we're doing Game of Life simulation
+                        if let nextPattern = golGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT) { // Generates next frame using function
+                            DispatchQueue.main.async { // Need to queue actions in a DispatchQueue to ensure proper ordering
+                                layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT) // Updates layout
                                 if (life_remaining(layout: layout, width: GRID_WIDTH, height: GRID_HEIGHT) <= RESET_PERCENT) && iterations > 150 && !disable_restocking { // We need a percentage of life <= the set threshold and we must have seen 150 generations to ensure smaller starting patterns get a chance to get going
-                                    iterations = 0
-                                    if start_with_clear_board {
+                                    iterations = 0 // Resets iteration counter since we've reset
+                                    if start_with_clear_board { // If we started with a clear board, when we reset we should go back to clear
                                         layout = makeEmptyBoard(width: GRID_WIDTH, height: GRID_HEIGHT)
-                                    } else {
+                                    } else { // Otherwise,
                                         layout = path == ""
                                         ? cArrayToSwiftArray(pattern: golGenRandom(width: GRID_WIDTH, height: GRID_HEIGHT, percentAlive: STARTING_PERCENTAGE)!, width: GRID_WIDTH, height: GRID_HEIGHT)
                                         : file_to_board(path: path, width: GRID_WIDTH, height: GRID_HEIGHT) // or read from file if not random
@@ -200,24 +200,26 @@ struct Background: View {
                                 }
                             }
                         }
-                    } else if simulation == "seeds" {
-                        if let nextPattern = seedsGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT) {
-                            DispatchQueue.main.async {
-                                layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT)
+                    } else if simulation == "seeds" { // If we're doing Seeds simulation
+                        if let nextPattern = seedsGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT) { // Generates next frame using function
+                            DispatchQueue.main.async { // Need to queue actions in a DispatchQueue to ensure proper ordering
+                                layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT) // Updates layout
                                 if iterations >= 100 && !disable_restocking { // We don't care about life_count since seeds typically grows rather than shrinks, we just care about getting to 150 iterations and then resetting
-                                    iterations = 0
-                                    if start_with_clear_board {
+                                    iterations = 0 // Resets iteration counter since we've reset
+                                    if start_with_clear_board { // If we started with a clear board, when we reset we should go back to clear
                                         layout = makeEmptyBoard(width: GRID_WIDTH, height: GRID_HEIGHT)
-                                    } else {
+                                    } else { // Otherwise,
                                         layout = path == "" ? makeSmallBoard(width: GRID_WIDTH, height: GRID_HEIGHT) : file_to_board(path: path, width: GRID_WIDTH, height: GRID_HEIGHT) // or read from file if not random
                                     }
                                 }
                             }
                         }
-                    } else if simulation == "ant" {
-                        if let nextPattern = antGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT, ants: &ants) {
-                            DispatchQueue.main.async {
-                                layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT)
+                    } else if simulation == "ant" { // If we're doing ant simulation
+                        if let nextPattern = antGenNext(pattern: swiftArrayToCArray(board2D: layout, width: GRID_WIDTH, height: GRID_HEIGHT), width: GRID_WIDTH, height: GRID_HEIGHT, ants: &ants) { // Use function to generate next frame given current frame and ant list
+                            DispatchQueue.main.async { // Need to queue actions in a DispatchQueue to ensure proper ordering
+                                layout = cArrayToSwiftArray(pattern: nextPattern, width: GRID_WIDTH, height: GRID_HEIGHT) // Just update the layout
+                                
+                                // This one is pretty simple due to ants not having things like restocking
                             }
                         }
                     }
