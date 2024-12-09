@@ -1,10 +1,12 @@
 /*
-Author: Holden Vail
-Class: EECS 581
-Assignment: Project 3
-Creation Date: 10/29/2024
+Name: langtons_ant.c
 
-Langton's ant
+Authors:
+    - Holden Vail
+
+Creation Date: 10-29-2024
+Description: This program reads a Brain's Brain board state and generates some number of future board states according
+            to the rules of Brain's Brain
 */
 
 #include <stdio.h> //standard I/O library
