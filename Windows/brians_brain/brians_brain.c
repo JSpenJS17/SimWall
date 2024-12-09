@@ -1,5 +1,5 @@
 /*
-Name:game_of_life.c
+Name:brians_brain.c
 
 Authors:
     - Holden Vail
