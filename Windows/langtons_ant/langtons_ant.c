@@ -5,8 +5,8 @@ Authors:
     - Holden Vail
 
 Creation Date: 10-29-2024
-Description: This program reads a Brain's Brain board state and generates some number of future board states according
-            to the rules of Brain's Brain
+Description: This program reads a Langton's Ant board state and generates some number of future board states according
+            to the rules of Langton's Ant
 */
 
 #include <stdio.h> //standard I/O library
