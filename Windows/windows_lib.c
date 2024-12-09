@@ -37,47 +37,59 @@ static int pix_height; //height of screen in pixels
 static HBITMAP hBitmap; //for layered window updates
 
 /* Functions */
+
+/*
+    Function to fill a cell at a given (x,y) coordinate with current color
+*/
 void fill_cell(int x, int y, size_t size) {
-    /* Fills a cell at x, y with the current color */
-    for (int i = 0; i < size; ++i) {
-        for (int j = 0; j < size; ++j) {
-            pixels[(y*size + i) * screen_width() + (x*size + j)] = cur_color;
+    for (int i = 0; i < size; ++i) { //loop through the height of the cell
+        for (int j = 0; j < size; ++j) { //loop through the width of the cell
+            pixels[(y*size + i) * screen_width() + (x*size + j)] = cur_color; //set color
         }
     }
 }
 
+/*
+    Function to fill circle at a given (x,y) with current color
+*/
 void fill_circle(int x, int y, size_t size) {
-    /* Fills a circle at x, y with the current color */
-    int radius = size / 2;
-    int center_x = x * size + radius;
-    int center_y = y * size + radius;
+    int radius = size / 2; //calculate radius of circle
+    int center_x = x * size + radius; //calculate center x position of circle
+    int center_y = y * size + radius; //calculate center y position of circle
 
-    for (int i = 0; i < size; ++i) {
-        for (int j = 0; j < size; ++j) {
-            int dx = center_x - (x*size + j);
-            int dy = center_y - (y*size + i);
-            if (dx*dx + dy*dy <= radius*radius) {
-                pixels[(y*size + i) * screen_width() + (x*size + j)] = cur_color;
+    for (int i = 0; i < size; ++i) { //loop through height of circle
+        for (int j = 0; j < size; ++j) { //loop through width of circle
+            int dx = center_x - (x*size + j); //horizontal distance from point to center
+            int dy = center_y - (y*size + i); //vertical distance from point to center
+            if (dx*dx + dy*dy <= radius*radius) { //if point is within boundaries
+                pixels[(y*size + i) * screen_width() + (x*size + j)] = cur_color; //set color
             }
         }
     }
 }
 
-// Get the screen width and height
+/*
+    Function that returns width of screen
+*/
 int screen_width(){
     return pix_width;
 }
 
+/*
+    Function that returns height of screen
+*/
 int screen_height() {
     return pix_height;
 }
 
+/*
+    Function to set foreground paint color using RGB struct
+*/
 void color(RGBA rgba) {
-    /* Sets foreground paint color using RGB struct */
-    if (rgba.r > rgba.a) { rgba.r = rgba.a; }
-    if (rgba.g > rgba.a) { rgba.g = rgba.a; }
-    if (rgba.b > rgba.a) { rgba.b = rgba.a; }
-    cur_color = (rgba.a << 24) | (rgba.r << 16) | (rgba.g << 8) | rgba.b;
+    if (rgba.r > rgba.a) { rgba.r = rgba.a; } //ensure red does not exceed alpha
+    if (rgba.g > rgba.a) { rgba.g = rgba.a; } //ensure green does not exceed alpha
+    if (rgba.b > rgba.a) { rgba.b = rgba.a; } //ensure blue does not exceed alphs
+    cur_color = (rgba.a << 24) | (rgba.r << 16) | (rgba.g << 8) | rgba.b; //combine alpha and RGB into a single 32-bit integer
 }
 
 /*From https://stackoverflow.com/questions/5404277/c-win32-how-to-get-the-window-handle-of-the-window-that-has-focus
@@ -90,7 +102,9 @@ So we look for the WorkerW window that is the parent of the SHELLDLL_DefView win
 // Declare the global variable for WorkerW
 HWND hWorkerW = NULL;
 
-// Callback function for EnumWindows in C
+/*
+    Callback function for EnumWindows in C
+*/
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     HWND hShellView = FindWindowEx(hwnd, NULL, "SHELLDLL_DefView", NULL);
     if (hShellView != NULL) {
@@ -102,63 +116,63 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 
 HWND GetDesktopWorkerW() {
     // Send a message to Progman to spawn WorkerW
-    HWND hProgman = FindWindow("Progman", NULL);
-    SendMessageTimeout(hProgman, 0x052C, 0, 0, SMTO_NORMAL, 1000, NULL);
+    HWND hProgman = FindWindow("Progman", NULL); //get program window handle
+    SendMessageTimeout(hProgman, 0x052C, 0, 0, SMTO_NORMAL, 1000, NULL); //send message to spawn WorkerW
 
     // Enumerate through windows to find the WorkerW
-    EnumWindows(EnumWindowsProc, 0);
+    EnumWindows(EnumWindowsProc, 0); //call EnumWindows with callback function
 
-
-    return hWorkerW;
+    return hWorkerW; //return WorkerW handle
 }
 
 void Detach(HWND win) {
     // Remove the parent from our window
-    SetParent(win, NULL);
+    SetParent(win, NULL); //set parent of window to NULL
 }
 
-
+/*
+    Function clean everything up
+*/
 void cleanup() {
-    /* Cleans everything up, be sure to call when done */
     // Hide and destroy main window
-    ShowWindow(hwnd, SW_HIDE);
-    ShowWindow(hWorkerW, SW_HIDE);
-    ReleaseDC(hwnd, hdc);
-    Detach(hwnd);
-    DestroyWindow(hwnd);
+    ShowWindow(hwnd, SW_HIDE); //hide application window
+    ShowWindow(hWorkerW, SW_HIDE); //hide WorkerW window
+    ReleaseDC(hwnd, hdc); //release device context
+    Detach(hwnd); //detach the application window from parent
+    DestroyWindow(hwnd); //destroy application window
     
     // Unregister the hotkeys
-    UnregisterHotKey(NULL, 1);
-    UnregisterHotKey(NULL, 2);
+    UnregisterHotKey(NULL, 1); //unregister hotkey with id = 1
+    UnregisterHotKey(NULL, 2); //unregister hotkey with id = 2
 
     // Release transparency related stuff
-    DeleteDC(hMemDC);
-    ReleaseDC(hwnd, hdc);
+    DeleteDC(hMemDC); //delete memory device context
+    ReleaseDC(hwnd, hdc); //release device context for window
 }
 
 POINT get_mouse_pos() {
     /* Returns the current mouse position relative to the window */
     POINT point;
-    if (GetCursorPos(&point)) {
-        if (ScreenToClient(hwnd, &point)) {
-            return point;
+    if (GetCursorPos(&point)) { //get cursor position
+        if (ScreenToClient(hwnd, &point)) { //convert screen coordinates to client window coordinates
+            return point; //return mouse position
         }
     }
-    POINT invalid_point = {-1, -1}; // Return an invalid point if the position cannot be determined
-    return invalid_point;
+    POINT invalid_point = {-1, -1}; //if the position cannot be determined
+    return invalid_point; //return invalid point
 }
 
 bool is_lmb_pressed() {
     /* Returns true if the left mouse button is pressed */
     POINT point;
-    if (GetCursorPos(&point)) {
-        if (ScreenToClient(hwnd, &point)) {
-            if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
-                return true;
+    if (GetCursorPos(&point)) { //get cursor position
+        if (ScreenToClient(hwnd, &point)) { //convert screen coordinates to client window coordinates
+            if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) { //if left mouse button is pressed
+                return true; //return true
             }
         }
     }
-    return false;
+    return false; //otherwise return false
 }
 
 //Custom WNProc to handle hotkeys
@@ -168,30 +182,31 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
        case WM_HOTKEY: 
         switch (wParam) {
             case 1:  // Ctrl+Alt+Q  Post a quit message to break loop in simwall.c
-                PostQuitMessage(0);
+                PostQuitMessage(0); //send quit message
                 break;
 
             case 2:  // Ctrl+Alt+P
-                paused = !paused;
+                paused = !paused; //toggle paused state
                 break;
 
             case 3:  // Ctrl+Alt+A
-                add_mode = !add_mode;
+                add_mode = !add_mode; //toggle add mode
                 break;
 
             case 4:  // Ctrl+Alt+D
-                clear = true;
+                clear = true; //set clear flat to true
                 break;
         }
         //If not a hotkey message, pass it to the default handler
         default:
-            return DefWindowProc(hwnd, msg, wParam, lParam);
+            return DefWindowProc(hwnd, msg, wParam, lParam); //call default window procedure
     }
     return 0;
 }
 
 void update_window() {
     UpdateLayeredWindow(hwnd, hdc, NULL, &size, hMemDC, &ptSrc, 0, &blend, ULW_ALPHA);
+    //update layered window with current pixel data with blend function for transparency
 }
 
 // Sets up a window with the specified background color
@@ -201,15 +216,16 @@ HWND window_setup(RGBA bg_color) {
     wc.hInstance = GetModuleHandle(NULL);
     wc.lpfnWndProc = WndProc; 
     wc.hbrBackground = CreateSolidBrush(RGB(bg_color.r, bg_color.g, bg_color.b));
+    //solid brush with specified background color
 
     // set screen width and height
-    pix_width = GetSystemMetrics(SM_CXSCREEN) * 3/2;
-    pix_height = GetSystemMetrics(SM_CYSCREEN) * 3/2;
+    pix_width = GetSystemMetrics(SM_CXSCREEN) * 3/2; //calculate screen width
+    pix_height = GetSystemMetrics(SM_CYSCREEN) * 3/2; //calculate screen height
 
     // Register the window class
-    if (!RegisterClass(&wc)) {
-        MessageBox(NULL, "Failed to register window class", "Error", MB_ICONERROR);
-        exit(1);
+    if (!RegisterClass(&wc)) { //if window class registration fails
+        MessageBox(NULL, "Failed to register window class", "Error", MB_ICONERROR); //error message
+        exit(1); //exit program
     }
 
     // Create the window
@@ -223,7 +239,7 @@ HWND window_setup(RGBA bg_color) {
     // Check if the window was created successfully
     if (hwnd == NULL) {
         printf(NULL, "Failed to create window", "Error", MB_ICONERROR);
-        exit(1);
+        exit(1); //exit program
     }
 
     // Get the WorkerW window and make sure it is visible
