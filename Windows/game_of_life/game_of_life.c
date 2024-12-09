@@ -1,13 +1,14 @@
 /*
-Name:game_of_life.c
+Name: game_of_life.c
 
 Authors:
     - Holden Vail
 
 Creation Date: 10-07-2024
-Description: This program reads a GoL board state and generates some number of future board states according
+Description: This program reads a Game of Life board state and generates some number of future board states according
             to the rules of Conway's Game of Life
 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
