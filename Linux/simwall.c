@@ -468,200 +468,51 @@ I cannot. Maybe the answer is to look at the root window and check
 its events? Cause the root window is overlayed on the sim */
 int main(int argc, char **argv) {
     // parse arguments
-    parse_args(argc, argv);
-
-    // daemonize if they asked for it
-    if (args->flags & DAEMONIZE) {
-        int pid = fork();
-        if (pid != 0) {
-            return 0;
-        }
+    if (argc < 2) {
+        usage();
     }
+
+    // daemonize
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("fork failed");
+        exit(1);
+    } else if (pid > 0) {
+        // Parent process
+        exit(0);
+    }
+
+    // grab our gif file from argv
+    char* gif = argv[1];
 
     // Initialize the window
-    window_setup(args->dead_color);
-    
-    // Set up add, pause, delete (clear), and quit keybinds
-    if (args->flags & KEYBINDS) {
-        setup_keybind("A");
-        setup_keybind("P");
-        setup_keybind("Q");
-        setup_keybind("D");
-    }
+    ARGB bg_color = {255, 0, 0, 0};
+    window_setup(bg_color);
 
-    // set the fill function based on the flags
-    fill_func = args->flags & CIRCLE ? fill_circle : fill_cell; // (x, y, size)
+    // Set up mpv
+    char* mpv_cmd = "mpv";
+    // command is `gifview <gif file> -a -w <window id>`
 
-    int* (*gen_next)(int*, int, int);
-    int* (*gen_random)(int, int, int);
-    void (*add_random)(int*, int, int, int);
-    // set the generation functions based on the flags
-    if (args->flags & BB) {
-        gen_next = bb_gen_next;
-        gen_random = bb_gen_random;
-        add_random = bb_add_life;
-    } else if (args->flags & SEEDS) {
-        gen_next = seeds_gen_next;
-        gen_random = seeds_gen_random;
-        add_random = seeds_add_life;
-    } else if (args->flags & ANT) { 
-        gen_next = ant_gen_next;
-        gen_random = ant_gen_random;
-        add_random = ant_add_life;
+    // get the window id
+    Window* window = get_window();
+    char window_id_arg[32];
+    snprintf(window_id_arg, sizeof(window_id_arg), "--wid=%lu", *window);
+
+    // set up the command
+    char* mpv_args[] = {mpv_cmd, "--loop", "--no-border", window_id_arg, gif, NULL};
+    pid_t mpv_pid = fork();
+    if (mpv_pid == 0) {
+        // Child process
+        execvp(mpv_cmd, mpv_args);
+        perror("execvp failed");
+        exit(1);
     } else {
-        gen_next = gol_gen_next;
-        gen_random = gol_gen_random;
-        add_random = gol_add_life;
+        // basically do nothing
+        // could wait for it to finish, but I don't care LOL
+        while (1) { usleep(100000000); }
     }
+    // Parent process
 
-    // set the restock threshold based on the flags
-    float restock_thresh = args->flags & BB ? 1.0 : .95;
-
-    // GAME TIME!!!    
-    Board cur_board;
-    cur_board.height = screen_height() / CELL_SIZE + 1;
-    cur_board.width = screen_width() / CELL_SIZE + 1;
-    
-    // Set up the board with random start
-    cur_board.pattern = (*gen_random)(cur_board.width, cur_board.height, 20);
-    if (args->flags & CLEAR) {
-        memset(cur_board.pattern, 0, cur_board.width * cur_board.height * sizeof(int));
-    }
-
-    // track how many dead there are
-    float dead = 0;
-    const float total = cur_board.width * cur_board.height;
-
-    if (args->flags & ANT) {
-        // do ant things
-        if (!args->ants) {
-            // Default ant
-            args->num_ants = 1;
-            args->ants = (Ant*)malloc(sizeof(Ant));
-            args->ants[0].x = cur_board.width / 2;
-            args->ants[0].y = cur_board.height / 2;
-            args->ants[0].direction = UP;
-            args->ants[0].color = (ARGB){255, 255, 0, 0};
-
-            // Default color list
-            color_list = (ARGB*)malloc(2 * sizeof(ARGB));
-            color_list[0] = (ARGB){255, 0, 0, 0};
-            color_list[1] = (ARGB){255, 255, 255, 255};
-            num_colors = 2;
-
-            // Default ruleset
-            ruleset[0] = 'R';
-            ruleset[1] = 'L';
-            ruleset[2] = '\0';
-        }
-        // Initialize the ants
-        init_ants(args->ants, args->num_ants, ruleset);
-    } else {
-        num_colors = 3;
-        color_list = (ARGB*)malloc(3 * sizeof(ARGB));
-        color_list[0] = args->dead_color;
-        color_list[1] = args->alive_color;
-        color_list[2] = args->dying_color;
-    }
-
-    // set the color to the background color
-    color(color_list[cur_color]);
-    cur_color = DEAD;    
-
-    // define iter count
-    int iter_count = 0;
-
-    // Main loop
-    while (1) {
-        // get start time
-        time_t start_time = time(NULL);
-
-        /* DRAWING PORTION */
-        // loop through our board and draw it
-        for (int i = 0; i < cur_board.width * cur_board.height; i++) {
-            // if the color has changed
-            if (cur_board.pattern[i] != cur_color) {
-                // update color accordingly
-                    // % num_colors to allow for ANT's variable number of states
-                cur_color = cur_board.pattern[i] % num_colors; 
-                color(color_list[cur_color]);
-            }
-
-            // increment dead counter if on dead cell
-                // will increment in langton's ant, but will do nothing
-            if (cur_color == DEAD) {
-                dead++;
-            }
-
-            // fill the cell with whatever color we land on
-            fill_func(i % cur_board.width, i / cur_board.width, CELL_SIZE);
-        }
-        
-        color(color_list[DEAD]);
-        cur_color = DEAD;
-        // fill one more row and col with bg to make sure we fill the whole screen
-        for (int i = 0; i < cur_board.width; i++) {
-            fill_func(i, cur_board.height, CELL_SIZE);
-        }
-        for (int i = 0; i < cur_board.height; i++) {
-            fill_func(cur_board.width, i, CELL_SIZE);
-        }
-
-        // Handle drawing ants over the now completed board
-        if (args->flags & ANT) {
-            // Loop through the ants and draw them
-            cur_color = -1; // dummy value to let us know we need to reset the color
-            for (int ant_index = 0; ant_index < args->num_ants; ant_index++) {
-                Ant ant = args->ants[ant_index];
-                color(args->ants[ant_index].color);
-                fill_func(ant.x, ant.y, CELL_SIZE);
-            }
-        }
-
-        /* GENERATION PORTION */
-        // Now generate the next pattern
-        int* next_pattern = (*gen_next)(cur_board.pattern, cur_board.width, cur_board.height);
-        free(cur_board.pattern);
-        cur_board.pattern = next_pattern;
-
-        // check if we need to add more cells
-        if (args->flags & SEEDS) {
-            // increment iter count
-            iter_count++;
-            // if iter count too high
-            if (iter_count >= 100 && !(args->flags & NO_RESTOCK)) {
-                int* next_pattern = gen_random(cur_board.width, cur_board.height, 20);
-                free(cur_board.pattern);
-                cur_board.pattern = next_pattern;
-                iter_count = 0;
-            }
-        } else {
-            // if XX% of the board is dead, add more cells
-            if (dead/total >= restock_thresh && !(args->flags & NO_RESTOCK)) {
-                add_random(cur_board.pattern, cur_board.width, cur_board.height, 20);
-                iter_count = 0;
-            }
-        }
-        // reset dead count
-        dead = 0;
-
-
-        /* EXTRA FEATURES */
-        // keybind processing
-        if (args->flags & KEYBINDS) {
-            handle_keybinds(&cur_board);
-        }
-
-        // sleep for the remainder of the frame time, which is usually 100% of it
-        time_t end_time = time(NULL);
-        int sleep_time = 1000000 / args->framerate - (end_time - start_time);
-        if (sleep_time > 0) {
-            usleep(sleep_time);
-        }
-    }
-
-    // cleanup, not that this is reachable
-    cleanup();
     return 0;
 }
 
